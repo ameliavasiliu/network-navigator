@@ -113,13 +113,14 @@ function TaskCard({
   return (
     <div
       className={cn(
-        "w-[360px] shrink-0 rounded-xl border border-border bg-card shadow-card",
+        "w-[320px] shrink-0 rounded-xl border border-border bg-card shadow-card",
         locked ? "opacity-55" : "opacity-100",
       )}
       data-testid={`card-task-${task.id}`}
     >
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
+      {/* Collapsed header: compact, title-forward, clear expand affordance */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3" data-testid={`row-task-header-${task.id}`}>
+        <div className="flex min-w-0 items-center gap-2">
           <div
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-lg",
@@ -129,12 +130,16 @@ function TaskCard({
           >
             {locked ? <Lock className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
           </div>
-          <div>
-            <div className="text-sm font-semibold" data-testid={`text-task-title-${task.id}`}>
-              Task {task.id}
-            </div>
-            <div className="text-xs text-text-secondary" data-testid={`text-task-name-${task.id}`}>
+
+          <div className="min-w-0">
+            <div
+              className="truncate text-sm font-semibold"
+              data-testid={`text-task-title-${task.id}`}
+            >
               {task.title}
+            </div>
+            <div className="mt-0.5 text-xs text-text-secondary" data-testid={`text-task-subtitle-${task.id}`}>
+              Task {task.id}
             </div>
           </div>
         </div>
@@ -149,6 +154,7 @@ function TaskCard({
           }}
           data-testid={`button-toggle-task-${task.id}`}
           aria-disabled={locked}
+          aria-label={expanded ? "Collapse task" : "Expand task"}
         >
           <ChevronDown
             className={cn("h-4 w-4 transition-transform", expanded ? "rotate-180" : "rotate-0")}
@@ -156,27 +162,35 @@ function TaskCard({
         </button>
       </div>
 
+      {/* Expanded content: description, why, resources */}
       {expanded ? (
-        <div className="px-5 pb-5" data-testid={`panel-task-${task.id}`}>
-          <div className="text-sm font-semibold" data-testid={`text-task-main-${task.id}`}>
-            {task.title}
-          </div>
-          <div className="mt-1 text-sm text-text-secondary" data-testid={`text-task-why-${task.id}`}>
-            {task.why}
-          </div>
-
-          <div className="mt-4 rounded-xl bg-black/5 p-4" data-testid={`card-task-links-${task.id}`}>
-            <div className="text-xs font-semibold" data-testid={`text-task-links-title-${task.id}`}>
-              Quick links
+        <div className="px-4 pb-4" data-testid={`panel-task-${task.id}`}>
+          <div className="rounded-xl bg-black/5 p-4" data-testid={`card-task-details-${task.id}`}>
+            <div className="text-xs font-semibold" data-testid={`text-task-details-title-${task.id}`}>
+              Description
             </div>
-            <ul className="mt-2 space-y-2 text-sm" data-testid={`list-task-links-${task.id}`}>
+            <div className="mt-1 text-sm text-text-secondary" data-testid={`text-task-description-${task.id}`}>
+              {task.title} (placeholder description)
+            </div>
+
+            <div className="mt-4 text-xs font-semibold" data-testid={`text-task-why-title-${task.id}`}>
+              Why it matters
+            </div>
+            <div className="mt-1 text-sm text-text-secondary" data-testid={`text-task-why-${task.id}`}>
+              {task.why}
+            </div>
+
+            <div className="mt-4 text-xs font-semibold" data-testid={`text-task-resources-title-${task.id}`}>
+              Resources
+            </div>
+            <ul className="mt-2 space-y-1.5 text-sm" data-testid={`list-task-links-${task.id}`}>
               <li className="text-text-secondary">• LinkedIn search (placeholder)</li>
               <li className="text-text-secondary">• Outreach template (placeholder)</li>
               <li className="text-text-secondary">• Notes checklist (placeholder)</li>
             </ul>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3" data-testid={`row-task-actions-${task.id}`}>
             <Button
               className="rounded-full bg-primary"
               data-testid={`button-complete-task-${task.id}`}
@@ -189,7 +203,7 @@ function TaskCard({
       ) : null}
 
       {locked ? (
-        <div className="px-5 pb-5" data-testid={`status-task-locked-${task.id}`}>
+        <div className="px-4 pb-4" data-testid={`status-task-locked-${task.id}`}>
           <div className="rounded-xl bg-black/5 p-3 text-xs text-text-secondary">
             Complete the previous task to unlock.
           </div>
