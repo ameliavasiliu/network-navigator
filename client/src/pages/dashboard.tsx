@@ -24,17 +24,29 @@ export default function Dashboard() {
           testId="card-kpi-mock-interviews"
         />
         <KpiCard
-          label="Next Practice"
-          value="Not Set"
-          helper="Schedule your next session"
-          testId="card-kpi-next-practice"
+          label="Active Weeks Streak"
+          value="2"
+          helper="Consecutive weeks you’ve used the platform"
+          testId="card-kpi-active-streak"
         />
-        <KpiCard
-          label="Document Status"
-          value="1 Missing"
-          helper="Resume & Cover Letter"
-          testId="card-kpi-document-status"
-        />
+        <div
+          className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 shadow-sm transition-colors hover:bg-primary/10"
+          data-testid="card-document-status"
+        >
+          <div>
+            <div className="text-xs font-medium text-text-secondary">Document Status</div>
+            <div className="mt-1 text-sm font-semibold text-text-primary">Resume & Cover Letter</div>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+             <button className="flex-1 rounded-lg border border-primary/20 bg-white py-1.5 text-xs font-medium text-text-primary shadow-sm hover:bg-primary/5">
+               Upload Resume
+             </button>
+             <button className="flex-1 rounded-lg border border-primary/20 bg-white py-1.5 text-xs font-medium text-text-primary shadow-sm hover:bg-primary/5">
+               Upload CL
+             </button>
+          </div>
+        </div>
       </section>
 
       <section className="space-y-4" data-testid="section-get-started">

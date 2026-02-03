@@ -1,0 +1,113 @@
+This is the final UI polish pass before functionality work begins.
+Make the following changes clearly and visibly.
+Do not refactor routing or component architecture.
+
+NN.1 — Dashboard Improvements
+
+KPI Cards
+
+Keep “Mock Interviews Completed”
+
+Replace “Next Practice” with:
+
+“Active Weeks Streak”
+
+Subtitle: “Consecutive weeks you’ve used the platform”
+
+Document Status Card
+
+Turn this into an actionable upload surface
+
+Include:
+
+Resume upload
+
+Cover letter upload
+
+Ability to re-upload/update
+
+This is UI-only (no logic)
+
+NN.2 — Network Navigator Landing Page
+
+Top Description Section
+
+Add a visually separated top box that explains:
+
+What Network Navigator does
+
+How it helps international students network and get jobs
+
+This section should feel distinct from the roadmap list below.
+
+Primary CTA Styling
+
+Make “Create new roadmap” feel more dynamic
+
+Use a subtle gradient or depth effect while preserving the teal/green palette
+
+Create New Roadmap Navigation
+
+Ensure clicking “Create new roadmap” navigates to Step 1 of the wizard
+
+No blank state or dead-end screen
+
+NN.3 — Roadmap View Improvements
+
+Header Separation
+
+Visually separate the goal/title area from the roadmap content
+
+Use spacing, divider, or background shift
+
+Task Card Spacing & Borders
+
+Increase spacing between task boxes
+
+Make card borders/lines more defined (still soft and professional)
+
+Collapsed vs Expanded Tasks (Critical)
+
+Collapsed tasks must:
+
+Be visually compact
+
+Not extend vertically
+
+Clearly hide inner content
+
+Expanded tasks should clearly reveal:
+
+Description
+
+Why it matters
+
+How to do this / Recommended approach
+
+Resources
+
+Updates Input
+
+Move the “updates / progress notes” box to the bottom of the roadmap
+
+Make it visually prominent and clearly optional
+
+Constraints
+
+UI-only changes
+
+No new colors outside existing palette
+
+No logic or data
+
+Preserve horizontal scroll roadmap
+
+This pass should make the product feel:
+
+Clear
+
+Intentional
+
+Ready for real functionality
+
+Stop after completing these changes.

@@ -38,7 +38,7 @@ export default function RoadmapView() {
 
   return (
     <div className="space-y-6" data-testid="screen-roadmap-view">
-      <div className="space-y-1" data-testid="roadmap-header">
+      <div className="space-y-1 pb-6 border-b border-border" data-testid="roadmap-header">
         <div className="text-xs font-medium text-text-secondary" data-testid="text-roadmap-kicker">
           Goal
         </div>
@@ -50,12 +50,12 @@ export default function RoadmapView() {
         </div>
       </div>
 
-      {/* Horizontal scroll task lane (matches PDF intent) */}
+      {/* Horizontal scroll task lane */}
       <div
-        className="-mx-10 overflow-x-auto px-10 pb-2"
+        className="-mx-10 overflow-x-auto px-10 pb-4"
         data-testid="scroll-roadmap-lane"
       >
-        <div className="flex min-w-max items-stretch gap-4" data-testid="lane-tasks">
+        <div className="flex min-w-max items-start gap-6" data-testid="lane-tasks">
           {mockTasks.map((t) => {
             const isExpanded = expandedId === t.id;
             const isLocked = t.status === "locked";
@@ -70,29 +70,32 @@ export default function RoadmapView() {
               />
             );
           })}
+        </div>
+      </div>
 
-          <div
-            className="w-[340px] shrink-0 rounded-xl border border-border bg-card p-5 shadow-card"
-            data-testid="card-roadmap-updates"
+      {/* Updates Section (Moved to bottom) */}
+      <div
+        className="rounded-xl border border-border bg-card p-6 shadow-sm"
+        data-testid="section-roadmap-updates"
+      >
+        <div className="text-sm font-semibold" data-testid="text-updates-title">
+          Weekly Progress Updates
+        </div>
+        <div className="mt-1 text-xs text-text-secondary" data-testid="text-updates-subtitle">
+          Share your progress or roadblocks so we can adjust your roadmap if needed. (Optional)
+        </div>
+        <textarea
+          className="mt-4 min-h-[100px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          placeholder="I messaged 3 alumni this week and..."
+          data-testid="textarea-roadmap-updates"
+        />
+        <div className="mt-3 flex justify-end">
+          <Button
+            className="rounded-full bg-primary px-6"
+            data-testid="button-save-updates"
           >
-            <div className="text-sm font-semibold" data-testid="text-updates-title">
-              Updates
-            </div>
-            <div className="mt-1 text-xs text-text-secondary" data-testid="text-updates-subtitle">
-              Type here any updates so we can adjust your roadmap
-            </div>
-            <textarea
-              className="mt-3 min-h-[120px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
-              placeholder="Type here..."
-              data-testid="textarea-roadmap-updates"
-            />
-            <Button
-              className="mt-3 w-full rounded-full bg-primary"
-              data-testid="button-save-updates"
-            >
-              Save updates
-            </Button>
-          </div>
+            Save update
+          </Button>
         </div>
       </div>
     </div>
@@ -113,18 +116,25 @@ function TaskCard({
   return (
     <div
       className={cn(
-        "w-[320px] shrink-0 rounded-xl border border-border bg-card shadow-card",
-        locked ? "opacity-55" : "opacity-100",
+        "w-[340px] shrink-0 rounded-xl border border-border bg-card shadow-sm transition-all duration-200",
+        locked ? "opacity-60 bg-gray-50/50" : "opacity-100 hover:shadow-md",
+        expanded ? "ring-1 ring-primary/20" : ""
       )}
       data-testid={`card-task-${task.id}`}
     >
-      {/* Collapsed header: compact, title-forward, clear expand affordance */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3" data-testid={`row-task-header-${task.id}`}>
-        <div className="flex min-w-0 items-center gap-2">
+      {/* Collapsed header */}
+      <div
+        className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"
+        data-testid={`row-task-header-${task.id}`}
+        onClick={() => {
+          if (!locked) onToggle();
+        }}
+      >
+        <div className="flex min-w-0 items-center gap-3">
           <div
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-lg",
-              locked ? "bg-black/5" : "bg-primary-muted",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+              locked ? "bg-gray-100 border-gray-200 text-gray-400" : "bg-primary/10 border-primary/10 text-primary-dark",
             )}
             data-testid={`badge-task-${task.id}`}
           >
@@ -133,79 +143,79 @@ function TaskCard({
 
           <div className="min-w-0">
             <div
-              className="truncate text-sm font-semibold"
+              className={cn("truncate text-sm font-semibold", locked ? "text-text-secondary" : "text-text-primary")}
               data-testid={`text-task-title-${task.id}`}
             >
               {task.title}
-            </div>
-            <div className="mt-0.5 text-xs text-text-secondary" data-testid={`text-task-subtitle-${task.id}`}>
-              Task {task.id}
             </div>
           </div>
         </div>
 
         <button
           className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg",
-            locked ? "cursor-not-allowed" : "hover:bg-black/5",
+            "inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+            locked ? "cursor-not-allowed text-gray-300" : "text-text-secondary hover:bg-black/5",
           )}
-          onClick={() => {
-            if (!locked) onToggle();
-          }}
-          data-testid={`button-toggle-task-${task.id}`}
           aria-disabled={locked}
           aria-label={expanded ? "Collapse task" : "Expand task"}
         >
           <ChevronDown
-            className={cn("h-4 w-4 transition-transform", expanded ? "rotate-180" : "rotate-0")}
+            className={cn("h-4 w-4 transition-transform duration-200", expanded ? "rotate-180" : "rotate-0")}
           />
         </button>
       </div>
 
-      {/* Expanded content: description, why, resources */}
+      {/* Expanded content */}
       {expanded ? (
-        <div className="px-4 pb-4" data-testid={`panel-task-${task.id}`}>
-          <div className="rounded-xl bg-black/5 p-4" data-testid={`card-task-details-${task.id}`}>
-            <div className="text-xs font-semibold" data-testid={`text-task-details-title-${task.id}`}>
-              Description
-            </div>
-            <div className="mt-1 text-sm text-text-secondary" data-testid={`text-task-description-${task.id}`}>
-              {task.title} (placeholder description)
-            </div>
+        <div className="px-4 pb-4 pt-1" data-testid={`panel-task-${task.id}`}>
+          <div className="space-y-4">
+             {/* Description & Why */}
+             <div className="rounded-lg bg-gray-50 p-3 text-sm text-text-secondary">
+               <span className="font-semibold text-text-primary">Why:</span> {task.why}
+             </div>
 
-            <div className="mt-4 text-xs font-semibold" data-testid={`text-task-why-title-${task.id}`}>
-              Why it matters
-            </div>
-            <div className="mt-1 text-sm text-text-secondary" data-testid={`text-task-why-${task.id}`}>
-              {task.why}
-            </div>
+             {/* How to do this */}
+             <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">
+                  Recommended Approach
+                </div>
+                <div className="mt-1 text-sm leading-relaxed text-text-primary">
+                  Start by identifying 5 alumni on LinkedIn. Use the filter tools to find people who studied {task.title.toLowerCase().includes("consultant") ? "Economics" : "your major"}.
+                </div>
+             </div>
 
-            <div className="mt-4 text-xs font-semibold" data-testid={`text-task-resources-title-${task.id}`}>
-              Resources
-            </div>
-            <ul className="mt-2 space-y-1.5 text-sm" data-testid={`list-task-links-${task.id}`}>
-              <li className="text-text-secondary">• LinkedIn search (placeholder)</li>
-              <li className="text-text-secondary">• Outreach template (placeholder)</li>
-              <li className="text-text-secondary">• Notes checklist (placeholder)</li>
-            </ul>
-          </div>
+             {/* Resources */}
+             <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">
+                  Resources
+                </div>
+                <ul className="mt-2 space-y-2">
+                  <li className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 cursor-pointer hover:text-primary-dark">
+                    <span>📄</span> LinkedIn Search Guide
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 cursor-pointer hover:text-primary-dark">
+                    <span>💬</span> Cold Outreach Template
+                  </li>
+                </ul>
+             </div>
 
-          <div className="mt-3" data-testid={`row-task-actions-${task.id}`}>
-            <Button
-              className="rounded-full bg-primary"
-              data-testid={`button-complete-task-${task.id}`}
-              disabled={locked}
-            >
-              Mark as done
-            </Button>
+             <div className="pt-2">
+                <Button
+                  className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                  data-testid={`button-complete-task-${task.id}`}
+                >
+                  Mark as Complete
+                </Button>
+             </div>
           </div>
         </div>
       ) : null}
 
       {locked ? (
         <div className="px-4 pb-4" data-testid={`status-task-locked-${task.id}`}>
-          <div className="rounded-xl bg-black/5 p-3 text-xs text-text-secondary">
-            Complete the previous task to unlock.
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 text-xs text-text-secondary">
+             <Lock className="h-3 w-3" />
+             <span>Complete previous task to unlock</span>
           </div>
         </div>
       ) : null}

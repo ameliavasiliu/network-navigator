@@ -13,7 +13,17 @@ export default function NetworkNavigatorLanding() {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6" data-testid="screen-network-navigator-landing">
+    <div className="space-y-8" data-testid="screen-network-navigator-landing">
+      {/* Top Description Box */}
+      <div className="rounded-xl border border-border bg-white p-6 shadow-sm" data-testid="box-network-description">
+        <h2 className="text-lg font-semibold text-text-primary">Your Personal Networking Compass</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
+          Network Navigator helps international students navigate the complex U.S. job market.
+          We provide tailored roadmaps, step-by-step outreach guidance, and cultural context to help you
+          build meaningful professional relationships and secure opportunities.
+        </p>
+      </div>
+
       <PageHeader
         title="Network Navigator"
         subtitle="Create a new roadmap or continue where you left off."
@@ -21,7 +31,7 @@ export default function NetworkNavigatorLanding() {
         right={
           <Button
             onClick={() => navigate("/network-navigator/wizard/step-1")}
-            className="rounded-full bg-primary px-5"
+            className="rounded-full bg-gradient-to-r from-primary to-emerald-400 px-6 font-semibold text-white shadow-md hover:shadow-lg hover:brightness-105"
             data-testid="button-create-roadmap"
           >
             Create new roadmap
