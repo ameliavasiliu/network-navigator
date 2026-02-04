@@ -10,7 +10,7 @@ export default function NetworkNavigatorLanding() {
 
   const handleGoToRoadmap = (id: string) => {
     setCurrentRoadmap(id);
-    navigate(`/network-navigator/roadmap/${id}`);
+    navigate(`/network-navigator/${id}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -39,7 +39,7 @@ export default function NetworkNavigatorLanding() {
         testId="header-network-navigator"
         right={
           <Button
-            onClick={() => navigate("/network-navigator/wizard/step-1")}
+            onClick={() => navigate("/network-navigator/create")}
             className="rounded-full bg-gradient-to-r from-primary to-emerald-400 px-6 font-semibold text-white shadow-md hover:shadow-lg hover:brightness-105"
             data-testid="button-create-roadmap"
           >

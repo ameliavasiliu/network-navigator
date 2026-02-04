@@ -12,13 +12,13 @@ export default function RoadmapView() {
   const [expandedId, setExpandedId] = React.useState<string>("");
   const [updateText, setUpdateText] = React.useState("");
 
-  const roadmap = roadmaps.find((r) => r.id === params.id);
+  const roadmap = roadmaps.find((r) => r.id === params.roadmapId);
 
   React.useEffect(() => {
-    if (params.id) {
-      setCurrentRoadmap(params.id);
+    if (params.roadmapId) {
+      setCurrentRoadmap(params.roadmapId);
     }
-  }, [params.id, setCurrentRoadmap]);
+  }, [params.roadmapId, setCurrentRoadmap]);
 
   React.useEffect(() => {
     if (roadmap && roadmap.tasks.length > 0 && !expandedId) {

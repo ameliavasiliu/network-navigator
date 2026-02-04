@@ -4,9 +4,26 @@ import { FeatureCard } from "@/components/feature-card";
 import { KpiCard } from "@/components/kpi-card";
 import { PageHeader } from "@/components/page-header";
 import { Network, MessageSquareText, Rocket } from "lucide-react";
+import { useRoadmap } from "@/context/roadmap-context";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { roadmaps, setCurrentRoadmap } = useRoadmap();
+
+  const handleGoToRoadmap = (id: string) => {
+    setCurrentRoadmap(id);
+    navigate(`/network-navigator/${id}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const displayRoadmaps = roadmaps.slice(0, 3);
 
   return (
     <div className="space-y-8" data-testid="screen-dashboard">
@@ -26,7 +43,7 @@ export default function Dashboard() {
         <KpiCard
           label="Active Weeks Streak"
           value="2"
-          helper="Consecutive weeks you’ve used the platform"
+          helper="Consecutive weeks you've used the platform"
           testId="card-kpi-active-streak"
         />
         <div
@@ -87,35 +104,48 @@ export default function Dashboard() {
         </div>
 
         <div className="rounded-xl border border-border bg-card shadow-card" data-testid="card-roadmaps-preview">
-          <ul className="divide-y divide-border" data-testid="list-roadmaps-preview">
-            {["Investment Banking", "Marketing", "Medical School"].map((name, idx) => (
-              <li
-                key={name}
-                className="flex items-center justify-between px-4 py-2.5"
-                data-testid={`row-roadmap-preview-${idx}`}
-              >
-                <div className="min-w-0">
-                  <div
-                    className="truncate text-sm font-medium"
-                    data-testid={`text-roadmap-name-${idx}`}
+          {displayRoadmaps.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-text-secondary" data-testid="text-no-roadmaps">
+              No roadmaps yet. Create your first one in Network Navigator!
+            </div>
+          ) : (
+            <ul className="divide-y divide-border" data-testid="list-roadmaps-preview">
+              {displayRoadmaps.map((rm, idx) => {
+                const completedTasks = rm.tasks.filter((t) => t.status === "completed").length;
+                const totalTasks = rm.tasks.length;
+
+                return (
+                  <li
+                    key={rm.id}
+                    className="flex items-center justify-between px-4 py-2.5"
+                    data-testid={`row-roadmap-preview-${idx}`}
                   >
-                    {name} path
-                  </div>
-                  <div className="text-xs text-text-secondary" data-testid={`text-roadmap-date-${idx}`}>
-                    {idx === 0 ? "11/23/2026" : idx === 1 ? "11/19/2026" : "11/01/2026"}
-                  </div>
-                </div>
-                <button
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-text-primary"
-                  onClick={() => navigate("/network-navigator/roadmap/1")}
-                  data-testid={`button-go-roadmap-${idx}`}
-                >
-                  Go here
-                  <Rocket className="h-3.5 w-3.5" />
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <div className="min-w-0">
+                      <div
+                        className="truncate text-sm font-medium"
+                        data-testid={`text-roadmap-name-${idx}`}
+                      >
+                        {rm.goal || "Untitled Roadmap"}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-text-secondary" data-testid={`text-roadmap-date-${idx}`}>
+                        <span>{formatDate(rm.createdAt)}</span>
+                        <span>·</span>
+                        <span>{completedTasks}/{totalTasks} tasks</span>
+                      </div>
+                    </div>
+                    <button
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-text-primary"
+                      onClick={() => handleGoToRoadmap(rm.id)}
+                      data-testid={`button-go-roadmap-${idx}`}
+                    >
+                      Go here
+                      <Rocket className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </section>
     </div>

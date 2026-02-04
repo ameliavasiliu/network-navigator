@@ -23,17 +23,15 @@ export default function RoadmapWizard() {
 
   const goNext = () => {
     if (step < 4) {
-      navigate(`/network-navigator/wizard/step-${step + 1}`);
+      navigate(`/network-navigator/create/step-${step + 1}`);
     } else {
-      // Generate the roadmap and navigate to it
-      // Placeholder: In the future, this would call an AI service to generate personalized tasks
       const roadmapId = createRoadmap();
-      navigate(`/network-navigator/roadmap/${roadmapId}`);
+      navigate(`/network-navigator/${roadmapId}`);
     }
   };
 
   const goBack = () => {
-    if (step > 1) navigate(`/network-navigator/wizard/step-${step - 1}`);
+    if (step > 1) navigate(`/network-navigator/create/step-${step - 1}`);
     else navigate("/network-navigator");
   };
 
