@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import { useRoadmap } from "@/context/roadmap-context";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -16,12 +17,19 @@ export default function RoadmapWizard() {
   const navigate = useNavigate();
   const params = useParams();
   const step = clampStep(params.step);
+  const { wizardFormData, updateWizardFormData, createRoadmap } = useRoadmap();
 
   const pct = (step / 4) * 100;
 
   const goNext = () => {
-    if (step < 4) navigate(`/network-navigator/wizard/step-${step + 1}`);
-    else navigate("/network-navigator/roadmap/1");
+    if (step < 4) {
+      navigate(`/network-navigator/wizard/step-${step + 1}`);
+    } else {
+      // Generate the roadmap and navigate to it
+      // Placeholder: In the future, this would call an AI service to generate personalized tasks
+      const roadmapId = createRoadmap();
+      navigate(`/network-navigator/roadmap/${roadmapId}`);
+    }
   };
 
   const goBack = () => {
@@ -62,23 +70,61 @@ export default function RoadmapWizard() {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6 shadow-card" data-testid="card-wizard">
-        {step === 1 ? <StepOne /> : null}
-        {step === 2 ? <StepTwo /> : null}
-        {step === 3 ? <StepThree /> : null}
-        {step === 4 ? <StepFour /> : null}
+        {step === 1 ? (
+          <StepOne
+            data={wizardFormData}
+            onChange={updateWizardFormData}
+          />
+        ) : null}
+        {step === 2 ? (
+          <StepTwo
+            data={wizardFormData}
+            onChange={updateWizardFormData}
+          />
+        ) : null}
+        {step === 3 ? (
+          <StepThree
+            data={wizardFormData}
+            onChange={updateWizardFormData}
+          />
+        ) : null}
+        {step === 4 ? (
+          <StepFour
+            data={wizardFormData}
+            onChange={updateWizardFormData}
+          />
+        ) : null}
       </div>
     </div>
   );
+}
+
+interface StepProps {
+  data: {
+    yearInSchool: string;
+    major: string;
+    school: string;
+    isInternational: string;
+    degree: string;
+    currentExperience: string;
+    goal: string;
+    additionalContext: string;
+  };
+  onChange: (updates: Partial<StepProps["data"]>) => void;
 }
 
 function Field({
   label,
   placeholder,
   testId,
+  value,
+  onChange,
 }: {
   label: string;
   placeholder: string;
   testId: string;
+  value: string;
+  onChange: (val: string) => void;
 }) {
   return (
     <label className="block" data-testid={testId}>
@@ -88,25 +134,57 @@ function Field({
       <input
         className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
         placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         data-testid={`${testId}-input`}
       />
     </label>
   );
 }
 
-function StepOne() {
+function StepOne({ data, onChange }: StepProps) {
   return (
     <div className="space-y-5" data-testid="wizard-step-1">
-      <Field label="Year in school" placeholder="e.g., Sophomore" testId="field-year" />
-      <Field label="What are you studying?" placeholder="e.g., Economics" testId="field-major" />
-      <Field label="Where do you go to school?" placeholder="e.g., UCLA" testId="field-school" />
-      <Field label="Are you an international student?" placeholder="Yes/No" testId="field-international" />
-      <Field label="What degree are you getting?" placeholder="e.g., B.A." testId="field-degree" />
+      <Field
+        label="Year in school"
+        placeholder="e.g., Sophomore"
+        testId="field-year"
+        value={data.yearInSchool}
+        onChange={(val) => onChange({ yearInSchool: val })}
+      />
+      <Field
+        label="What are you studying?"
+        placeholder="e.g., Economics"
+        testId="field-major"
+        value={data.major}
+        onChange={(val) => onChange({ major: val })}
+      />
+      <Field
+        label="Where do you go to school?"
+        placeholder="e.g., UCLA"
+        testId="field-school"
+        value={data.school}
+        onChange={(val) => onChange({ school: val })}
+      />
+      <Field
+        label="Are you an international student?"
+        placeholder="Yes/No"
+        testId="field-international"
+        value={data.isInternational}
+        onChange={(val) => onChange({ isInternational: val })}
+      />
+      <Field
+        label="What degree are you getting?"
+        placeholder="e.g., B.A."
+        testId="field-degree"
+        value={data.degree}
+        onChange={(val) => onChange({ degree: val })}
+      />
     </div>
   );
 }
 
-function StepTwo() {
+function StepTwo({ data, onChange }: StepProps) {
   return (
     <div className="space-y-5" data-testid="wizard-step-2">
       <label className="block" data-testid="field-resume">
@@ -114,7 +192,7 @@ function StepTwo() {
         <div className="mt-2 rounded-xl border border-dashed border-border bg-white p-5">
           <input type="file" className="text-sm" data-testid="input-resume" />
           <div className="mt-2 text-xs text-text-secondary" data-testid="text-resume-help">
-            PDF/DOCX, UI-only for MVP.
+            PDF/DOCX. (Resume parsing coming soon)
           </div>
         </div>
       </label>
@@ -126,6 +204,8 @@ function StepTwo() {
         <textarea
           className="mt-2 min-h-[120px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
           placeholder="Type here..."
+          value={data.currentExperience}
+          onChange={(e) => onChange({ currentExperience: e.target.value })}
           data-testid="textarea-experience"
         />
       </label>
@@ -133,7 +213,7 @@ function StepTwo() {
   );
 }
 
-function StepThree() {
+function StepThree({ data, onChange }: StepProps) {
   return (
     <div className="space-y-5" data-testid="wizard-step-3">
       <label className="block" data-testid="field-goal">
@@ -142,7 +222,9 @@ function StepThree() {
         </div>
         <textarea
           className="mt-2 min-h-[140px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
-          placeholder="Type here..."
+          placeholder="e.g., I want to become a management consultant at McKinsey..."
+          value={data.goal}
+          onChange={(e) => onChange({ goal: e.target.value })}
           data-testid="textarea-goal"
         />
       </label>
@@ -150,7 +232,7 @@ function StepThree() {
   );
 }
 
-function StepFour() {
+function StepFour({ data, onChange }: StepProps) {
   return (
     <div className="space-y-5" data-testid="wizard-step-4">
       <label className="block" data-testid="field-considerations">
@@ -159,7 +241,9 @@ function StepFour() {
         </div>
         <textarea
           className="mt-2 min-h-[140px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
-          placeholder="Type here..."
+          placeholder="e.g., I need visa sponsorship, I'm looking for summer internships..."
+          value={data.additionalContext}
+          onChange={(e) => onChange({ additionalContext: e.target.value })}
           data-testid="textarea-considerations"
         />
       </label>

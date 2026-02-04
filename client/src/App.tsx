@@ -8,25 +8,28 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import MockInterview from "@/pages/mock-interview";
 import { NetworkNavigatorLanding, RoadmapView, RoadmapWizard } from "@/pages/network-navigator";
+import { RoadmapProvider } from "@/context/roadmap-context";
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <HashRouter>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/mock-interview" element={<MockInterview />} />
-              <Route path="/network-navigator" element={<NetworkNavigatorLanding />} />
-              <Route path="/network-navigator/wizard/step-:step" element={<RoadmapWizard />} />
-              <Route path="/network-navigator/roadmap/:id" element={<RoadmapView />} />
-              <Route path="/dashboard" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </HashRouter>
+        <RoadmapProvider>
+          <HashRouter>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/mock-interview" element={<MockInterview />} />
+                <Route path="/network-navigator" element={<NetworkNavigatorLanding />} />
+                <Route path="/network-navigator/wizard/step-:step" element={<RoadmapWizard />} />
+                <Route path="/network-navigator/roadmap/:id" element={<RoadmapView />} />
+                <Route path="/dashboard" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </HashRouter>
+        </RoadmapProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
