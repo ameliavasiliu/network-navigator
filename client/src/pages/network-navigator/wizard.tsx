@@ -42,6 +42,7 @@ export default function RoadmapWizard() {
     <div className="max-w-3xl space-y-6" data-testid="screen-roadmap-wizard">
       <div className="flex items-center justify-between" data-testid="wizard-topbar">
         <button
+          type="button"
           className="inline-flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-text-primary"
           onClick={goBack}
           data-testid="button-wizard-back"
@@ -55,6 +56,7 @@ export default function RoadmapWizard() {
         </div>
 
         <Button
+          type="button"
           onClick={goNext}
           className="rounded-full bg-primary px-5"
           data-testid="button-wizard-next"
