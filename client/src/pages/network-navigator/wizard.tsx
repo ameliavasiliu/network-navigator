@@ -31,8 +31,11 @@ export default function RoadmapWizard() {
   };
 
   const goBack = () => {
-    if (step > 1) navigate(`/network-navigator/create/step-${step - 1}`);
-    else navigate("/network-navigator");
+    if (step > 1) {
+      navigate(`/network-navigator/create/step-${step - 1}`);
+    } else {
+      navigate("/network-navigator");
+    }
   };
 
   return (
