@@ -39,7 +39,7 @@ export default function NetworkNavigatorLanding() {
         testId="header-network-navigator"
         right={
           <Button
-            onClick={() => navigate("/network-navigator/create")}
+            onClick={() => navigate("/network-navigator/create/step-1")}
             className="rounded-full bg-gradient-to-r from-primary to-emerald-400 px-6 font-semibold text-white shadow-md hover:shadow-lg hover:brightness-105"
             data-testid="button-create-roadmap"
           >
