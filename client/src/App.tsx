@@ -22,16 +22,10 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Navigate to="/" replace />} />
                 <Route path="/mock-interview" element={<MockInterview />} />
-                
-                {/* Network Navigator routes - flat structure with explicit paths */}
                 <Route path="/network-navigator" element={<NetworkNavigatorLanding />} />
                 <Route path="/network-navigator/create" element={<Navigate to="/network-navigator/create/step-1" replace />} />
-                <Route path="/network-navigator/create/step-1" element={<RoadmapWizard />} />
-                <Route path="/network-navigator/create/step-2" element={<RoadmapWizard />} />
-                <Route path="/network-navigator/create/step-3" element={<RoadmapWizard />} />
-                <Route path="/network-navigator/create/step-4" element={<RoadmapWizard />} />
+                <Route path="/network-navigator/create/step-:step" element={<RoadmapWizard />} />
                 <Route path="/network-navigator/:roadmapId" element={<RoadmapView />} />
-                
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

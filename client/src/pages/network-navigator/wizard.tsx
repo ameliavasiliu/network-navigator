@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { useRoadmap } from "@/context/roadmap-context";
 
@@ -15,13 +14,15 @@ function clampStep(s: string | undefined): Step {
 
 export default function RoadmapWizard() {
   const navigate = useNavigate();
-  const params = useParams();
-  const step = clampStep(params.step);
+  const { step: stepParam } = useParams();
+  const step = clampStep(stepParam);
   const { wizardFormData, updateWizardFormData, createRoadmap } = useRoadmap();
 
   const pct = (step / 4) * 100;
 
-  const goNext = () => {
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (step < 4) {
       navigate(`/network-navigator/create/step-${step + 1}`);
     } else {
@@ -30,7 +31,9 @@ export default function RoadmapWizard() {
     }
   };
 
-  const goBack = () => {
+  const handleBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (step > 1) {
       navigate(`/network-navigator/create/step-${step - 1}`);
     } else {
@@ -44,7 +47,7 @@ export default function RoadmapWizard() {
         <button
           type="button"
           className="inline-flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-text-primary"
-          onClick={goBack}
+          onClick={handleBack}
           data-testid="button-wizard-back"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -55,14 +58,14 @@ export default function RoadmapWizard() {
           Step {step}
         </div>
 
-        <Button
+        <button
           type="button"
-          onClick={goNext}
-          className="rounded-full bg-primary px-5"
+          onClick={handleNext}
+          className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground border border-primary-border"
           data-testid="button-wizard-next"
         >
           {step === 4 ? "Generate Roadmap" : "Next"}
-        </Button>
+        </button>
       </div>
 
       <div className="space-y-2" data-testid="wizard-progress">
