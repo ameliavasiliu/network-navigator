@@ -1,0 +1,101 @@
+We now have a functional end-to-end MVP.
+The next step is to upgrade the quality and intentionality of the roadmap tasks, not routing or UI.
+
+Objective
+
+Transform the Network Navigator from generic career advice into a directive, role-specific, execution-focused system, especially for international MBA students.
+
+Required Changes
+1. Role-Specific Roadmap Templates
+
+Replace generic roadmap generation with explicit templates based on detected role:
+
+Investment Banking
+
+Consulting
+
+Marketing
+
+Product / Tech
+
+General Business
+
+Each role should have a distinct roadmap structure, not just different wording.
+
+2. Task Redesign (Critical)
+
+Redesign roadmap tasks so each task includes:
+
+Objective (clear, measurable)
+
+Why this matters (1–2 sentences)
+
+How to do it (step-by-step checklist)
+
+Resources (links, examples, templates)
+
+Completion gate (user must input evidence, not just click “Mark complete”)
+
+Examples of completion gates:
+
+Paste outreach message
+
+Enter name/company of contacted person
+
+Confirm number of outreaches sent
+
+3. Embedded US Business Etiquette
+
+For international students, embed short “Cultural Tip” sections inside relevant tasks covering:
+
+US networking norms
+
+Follow-up etiquette
+
+Professional tone expectations
+
+Visa-safe language
+
+These should be contextual, not standalone lessons.
+
+4. Lightweight Adaptive Logic
+
+When users add updates:
+
+Detect basic keywords (e.g., “no response”, “interview”, “visa”)
+
+Append or unlock relevant follow-up tasks
+
+This can be simple conditional logic — no advanced AI needed.
+
+5. Autopopulate Wizard Fields
+
+When creating a new roadmap:
+
+Pre-fill wizard fields with data from the most recent roadmap
+
+Allow user to edit before continuing
+
+Constraints
+
+Do NOT change routing
+
+Do NOT add authentication
+
+Do NOT add external APIs
+
+Keep everything local/state-based
+
+Comment clearly where future AI + database integration would occur
+
+Validation
+
+Marketing roadmap is clearly different from IB roadmap
+
+Tasks feel directive, not abstract
+
+Completing tasks requires real user input
+
+International student value is obvious within the roadmap
+
+Focus on usefulness over polish.

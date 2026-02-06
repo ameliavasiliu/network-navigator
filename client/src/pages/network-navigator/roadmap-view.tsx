@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Lock, Sparkles, CheckCircle } from "lucide-react";
+import { ChevronDown, Lock, Sparkles, CheckCircle, Globe, BookOpen, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRoadmap, Task } from "@/context/roadmap-context";
 
@@ -48,8 +48,8 @@ export default function RoadmapView() {
     );
   }
 
-  const handleCompleteTask = (taskId: string) => {
-    completeTask(taskId);
+  const handleCompleteTask = (taskId: string, evidence: string) => {
+    completeTask(taskId, evidence);
     const taskIndex = roadmap.tasks.findIndex((t) => t.id === taskId);
     const nextTask = roadmap.tasks[taskIndex + 1];
     if (nextTask) {
@@ -80,10 +80,15 @@ export default function RoadmapView() {
           <span>{completedCount} of {roadmap.tasks.length} tasks completed</span>
           <span>·</span>
           <span>{progressPercent}% complete</span>
+          {roadmap.goalCategory && (
+            <>
+              <span>·</span>
+              <span className="capitalize">{roadmap.goalCategory === "finance" ? "Investment Banking" : roadmap.goalCategory === "tech" ? "Product / Tech" : roadmap.goalCategory} track</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Horizontal scroll task lane */}
       <div
         className="-mx-10 overflow-x-auto px-10 pb-4"
         data-testid="scroll-roadmap-lane"
@@ -102,14 +107,13 @@ export default function RoadmapView() {
                 completed={isCompleted}
                 expanded={isExpanded}
                 onToggle={() => setExpandedId((cur) => (cur === t.id ? "" : t.id))}
-                onComplete={() => handleCompleteTask(t.id)}
+                onComplete={handleCompleteTask}
               />
             );
           })}
         </div>
       </div>
 
-      {/* Updates Section */}
       <div
         className="rounded-xl border border-border bg-card p-6 shadow-sm"
         data-testid="section-roadmap-updates"
@@ -118,11 +122,11 @@ export default function RoadmapView() {
           Weekly Progress Updates
         </div>
         <div className="mt-1 text-xs text-text-secondary" data-testid="text-updates-subtitle">
-          Share your progress or roadblocks so we can adjust your roadmap if needed. (Optional)
+          Share what happened this week. Mention specifics — the system will detect keywords like "no response," "interview," or "visa" and add relevant follow-up tasks to your roadmap.
         </div>
         <textarea
           className="mt-4 min-h-[100px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-          placeholder="I messaged 3 alumni this week and..."
+          placeholder="e.g., I sent 5 outreach messages but got no response from 3 of them. I have an interview next week at Goldman..."
           value={updateText}
           onChange={(e) => setUpdateText(e.target.value)}
           data-testid="textarea-roadmap-updates"
@@ -149,6 +153,11 @@ export default function RoadmapView() {
                 data-testid={`update-${update.id}`}
               >
                 <div className="text-text-primary">{update.content}</div>
+                {update.adaptiveAction && (
+                  <div className="mt-2 rounded-md bg-primary/5 border border-primary/10 px-3 py-2 text-xs text-primary-dark">
+                    <span className="font-semibold">Roadmap updated:</span> {update.adaptiveAction}
+                  </div>
+                )}
                 <div className="mt-1 text-xs text-text-secondary">
                   {new Date(update.createdAt).toLocaleDateString("en-US", {
                     month: "short",
@@ -178,19 +187,40 @@ function TaskCard({
   completed: boolean;
   expanded: boolean;
   onToggle: () => void;
-  onComplete: () => void;
+  onComplete: (taskId: string, evidence: string) => void;
 }) {
+  const [evidenceValue, setEvidenceValue] = React.useState("");
+  const [gateError, setGateError] = React.useState("");
+
+  const handleSubmitEvidence = () => {
+    if (!evidenceValue.trim()) {
+      setGateError("Please provide the required input before completing this task.");
+      return;
+    }
+    if (task.completionGate.type === "number" && isNaN(Number(evidenceValue))) {
+      setGateError("Please enter a valid number.");
+      return;
+    }
+    setGateError("");
+    onComplete(task.id, evidenceValue.trim());
+    setEvidenceValue("");
+  };
+
+  const handleConfirmGate = () => {
+    onComplete(task.id, "confirmed");
+    setEvidenceValue("");
+  };
+
   return (
     <div
       className={cn(
-        "w-[340px] shrink-0 rounded-xl border border-border bg-card shadow-sm transition-all duration-200",
+        "w-[380px] shrink-0 rounded-xl border border-border bg-card shadow-sm transition-all duration-200",
         locked ? "opacity-60 bg-gray-50/50" : "opacity-100 hover:shadow-md",
         completed ? "border-green-200 bg-green-50/30" : "",
         expanded ? "ring-1 ring-primary/20" : ""
       )}
       data-testid={`card-task-${task.id}`}
     >
-      {/* Collapsed header */}
       <div
         className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"
         data-testid={`row-task-header-${task.id}`}
@@ -241,60 +271,142 @@ function TaskCard({
         </button>
       </div>
 
-      {/* Expanded content */}
       {expanded ? (
-        <div className="px-4 pb-4 pt-1" data-testid={`panel-task-${task.id}`}>
-          <div className="space-y-4">
-            {/* Description & Why */}
-            <div className="rounded-lg bg-gray-50 p-3 text-sm text-text-secondary">
-              <span className="font-semibold text-text-primary">Why:</span> {task.whyItMatters}
-            </div>
-
-            {/* How to do this */}
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">
-                Recommended Approach
-              </div>
-              <div className="mt-1 text-sm leading-relaxed text-text-primary">
-                {task.howToDoThis}
-              </div>
-            </div>
-
-            {/* Resources */}
-            {task.resources.length > 0 && (
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">
-                  Resources
-                </div>
-                <ul className="mt-2 space-y-2">
-                  {task.resources.map((resource, idx) => (
-                    <li key={idx}>
-                      <a
-                        href={resource.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 cursor-pointer hover:text-primary-dark"
-                      >
-                        <span>📄</span> {resource.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {!completed && (
-              <div className="pt-2">
-                <Button
-                  className="w-full rounded-full bg-primary font-medium hover:brightness-95"
-                  onClick={onComplete}
-                  data-testid={`button-complete-task-${task.id}`}
-                >
-                  Mark as Complete
-                </Button>
-              </div>
-            )}
+        <div className="px-4 pb-4 pt-1 space-y-4" data-testid={`panel-task-${task.id}`}>
+          <div className="rounded-lg bg-gray-50 p-3 text-sm text-text-secondary" data-testid={`text-task-objective-${task.id}`}>
+            <span className="font-semibold text-text-primary">Objective:</span> {task.objective}
           </div>
+
+          <div className="rounded-lg bg-amber-50/60 border border-amber-100 p-3 text-sm text-amber-900" data-testid={`text-task-why-${task.id}`}>
+            <span className="font-semibold">Why this matters:</span> {task.whyItMatters}
+          </div>
+
+          <div data-testid={`section-task-steps-${task.id}`}>
+            <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
+              How to do it
+            </div>
+            <ol className="mt-2 space-y-2 list-none">
+              {task.steps.map((step, idx) => (
+                <li key={idx} className="flex gap-2 text-sm text-text-primary leading-relaxed">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary-dark">
+                    {idx + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {task.culturalTip && (
+            <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-3" data-testid={`section-task-cultural-${task.id}`}>
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">
+                <Globe className="h-3.5 w-3.5" />
+                Cultural Tip for International Students
+              </div>
+              <div className="text-sm text-blue-900 leading-relaxed">
+                {task.culturalTip}
+              </div>
+            </div>
+          )}
+
+          {task.resources.length > 0 && (
+            <div data-testid={`section-task-resources-${task.id}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 flex items-center gap-1.5">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Resources
+              </div>
+              <ul className="mt-2 space-y-2">
+                {task.resources.map((resource, idx) => (
+                  <li key={idx}>
+                    <a
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 cursor-pointer hover:text-primary-dark"
+                      data-testid={`link-resource-${task.id}-${idx}`}
+                    >
+                      {resource.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {completed && task.completionEvidence && (
+            <div className="rounded-lg bg-green-50 border border-green-100 p-3" data-testid={`section-task-evidence-${task.id}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-green-700 mb-1">
+                Your Submission
+              </div>
+              <div className="text-sm text-green-900 whitespace-pre-wrap">
+                {task.completionEvidence}
+              </div>
+            </div>
+          )}
+
+          {!completed && (
+            <div className="pt-2 space-y-3 border-t border-border" data-testid={`section-task-gate-${task.id}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">
+                Complete this task
+              </div>
+
+              {task.completionGate.type === "confirm" ? (
+                <div className="space-y-2">
+                  <div className="text-sm text-text-primary">{task.completionGate.prompt}</div>
+                  <Button
+                    className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                    onClick={handleConfirmGate}
+                    data-testid={`button-confirm-task-${task.id}`}
+                  >
+                    Yes, I confirm
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-primary block">
+                    {task.completionGate.prompt}
+                  </label>
+                  {task.completionGate.type === "text" ? (
+                    <textarea
+                      className="w-full min-h-[80px] rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      placeholder={task.completionGate.placeholder || ""}
+                      value={evidenceValue}
+                      onChange={(e) => {
+                        setEvidenceValue(e.target.value);
+                        setGateError("");
+                      }}
+                      data-testid={`input-evidence-${task.id}`}
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      placeholder={task.completionGate.placeholder || ""}
+                      value={evidenceValue}
+                      onChange={(e) => {
+                        setEvidenceValue(e.target.value);
+                        setGateError("");
+                      }}
+                      data-testid={`input-evidence-${task.id}`}
+                    />
+                  )}
+                  {gateError && (
+                    <div className="text-xs text-red-600" data-testid={`error-gate-${task.id}`}>
+                      {gateError}
+                    </div>
+                  )}
+                  <Button
+                    className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                    onClick={handleSubmitEvidence}
+                    data-testid={`button-complete-task-${task.id}`}
+                  >
+                    Submit & Complete Task
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : null}
 

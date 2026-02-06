@@ -136,7 +136,16 @@ function WizardShell({ step, children }: { step: number; children: React.ReactNo
 }
 
 export function Step1() {
-  const { wizardFormData, updateWizardFormData } = useRoadmap();
+  const { wizardFormData, updateWizardFormData, prefillWizardFromLastRoadmap } = useRoadmap();
+  const hasRun = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!hasRun.current) {
+      hasRun.current = true;
+      prefillWizardFromLastRoadmap();
+    }
+  }, [prefillWizardFromLastRoadmap]);
+
   return (
     <WizardShell step={1}>
       <StepOneContent data={wizardFormData} onChange={updateWizardFormData} />
