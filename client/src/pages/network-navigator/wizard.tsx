@@ -23,18 +23,18 @@ export default function RoadmapWizard() {
 
   const goNext = () => {
     if (step < 4) {
-      navigate(`../step-${step + 1}`);
+      navigate(`/network-navigator/create/step-${step + 1}`);
     } else {
       const roadmapId = createRoadmap();
-      navigate(`../../${roadmapId}`);
+      navigate(`/network-navigator/${roadmapId}`);
     }
   };
 
   const goBack = () => {
     if (step > 1) {
-      navigate(`../step-${step - 1}`);
+      navigate(`/network-navigator/create/step-${step - 1}`);
     } else {
-      navigate("../..");
+      navigate("/network-navigator");
     }
   };
 
