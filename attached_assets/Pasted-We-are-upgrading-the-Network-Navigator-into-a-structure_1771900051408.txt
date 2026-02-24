@@ -1,0 +1,365 @@
+We are upgrading the Network Navigator into a structured, AI-assisted coaching engine.
+
+IMPORTANT:
+
+Do NOT remove dashboard or roadmap history.
+
+Do NOT change intake question structure.
+
+Do NOT rewrite routing.
+
+Improve depth, logic, personalization, and task structure only.
+
+Preserve fast roadmap generation.
+
+PART 1 — INTAKE VALIDATION (USE EXISTING QUESTIONS ONLY)
+
+Users must complete ALL of the following existing fields before generating a roadmap:
+
+Year in school
+
+What are you studying?
+
+Where did you go to school?
+
+Are you an international student?
+
+What degree are you getting?
+
+What is your current circumstance/professional/academic experience?
+
+What is the professional goal you are trying to achieve?
+
+If any are empty:
+Disable roadmap generation.
+
+No new mandatory intake fields should be added.
+
+PART 2 — RESTRUCTURE TASK FORMAT
+
+Convert each task into:
+
+MAIN TASK → SUBTASKS → PROGRESS BAR (within task)
+
+Each task must open in a modal/subscreen.
+
+Each task includes:
+
+Objective
+
+Why this matters
+
+Step-by-step instructions (very specific)
+
+AI assistance section (if applicable)
+
+Required subtasks with validation
+
+Progress bar at top of that task modal
+
+Progress bar reflects subtask completion percentage.
+
+Users cannot mark task complete without completing required subtasks.
+
+PART 3 — AI-ASSISTED EXECUTION (NOT JUST INSTRUCTIONS)
+
+When a task requires communication (email, LinkedIn message, follow-up):
+
+System must:
+
+Auto-generate a personalized template using:
+
+Student name
+
+School
+
+Degree
+
+Target role
+
+Professional goal
+
+Allow student to edit template
+
+Require confirmation checkbox:
+“I have sent this message.”
+
+Optional:
+Allow paste-back of sent message for tracking.
+
+This prevents generic advice and increases usability.
+
+PART 4 — FULL LINKEDIN + NETWORKING STRATEGY INTEGRATION
+
+Create a dedicated Networking Task Sequence including:
+
+A. Alumni Research Subtask
+
+Guide user to:
+
+Search school on LinkedIn
+
+Click Alumni tab
+
+Filter by geography + role
+
+Identify recurring skills
+
+Review career paths
+
+Record:
+
+3 common skills
+
+3 career path patterns
+
+5 alumni to contact
+
+Require valid entries.
+
+B. Connection Strategy Subtask
+
+Include detailed interpersonal instructions:
+
+When sending connection request:
+
+Express admiration for their path
+
+Mention shared school
+
+Keep message short
+
+Ask for 15-minute informational call
+
+Do NOT ask for job
+
+System must auto-generate connection message template.
+
+C. Call Preparation Subtask
+
+Before call:
+
+Require student to input:
+
+5 prepared questions
+
+Provide suggested example questions such as:
+
+What are your main responsibilities?
+
+How did you break into this field?
+
+What skills matter most?
+
+What do you dislike about the job?
+
+How should someone with my background position themselves?
+
+Visa-related question (if international)
+
+D. During Call Guidance
+
+Provide instructions:
+
+Start with small talk
+
+Be respectful of time
+
+Listen more than speak
+
+Do NOT directly ask for job
+
+E. Post-Call Strategy
+
+Require:
+
+Log 3 insights learned
+
+Send follow-up within 24 hours (AI generates template)
+
+If appropriate, ask for referral or additional contacts
+
+Mention contact name in cover letter if applying
+
+PART 5 — CONTACT TRACKER (LIGHTWEIGHT)
+
+Add simple Contact Tracker stored per roadmap:
+
+Each contact entry must include:
+
+Name
+
+Company
+
+Role
+
+LinkedIn URL
+
+Status:
+
+Identified
+
+Messaged
+
+Responded
+
+Call Completed
+
+Referral Requested
+
+Notes
+
+Last interaction date
+
+Display contact tracker within networking tasks.
+
+PART 6 — COMPANY & ROLE RESEARCH DEPTH
+
+At roadmap generation:
+
+Based on professional goal + degree:
+
+System must generate:
+
+5–8 example companies in that industry
+
+Brief role descriptions
+
+Common required skills
+
+Public links to job pages
+
+Important:
+
+Do NOT fabricate visa sponsorship claims.
+Instead state:
+“Sponsorship varies year to year — confirm during networking conversations.”
+
+Regarding deeper searching:
+
+For now:
+Use structured AI generation based on known company patterns.
+Do NOT attempt live scraping or API job board integration yet.
+
+This can be Phase 3.
+
+PART 7 — INTERNATIONAL STUDENT SUPPORT
+
+Replace static “Cultural Tip” section with:
+
+Expandable section:
+
+“International Considerations”
+
+Include:
+
+Visa strategy guidance
+
+How to ask about sponsorship tactfully
+
+US networking norms explained respectfully
+
+Input box:
+“What concerns do you have as an international student?”
+
+Use that response to slightly personalize guidance.
+
+Avoid patronizing tone.
+
+PART 8 — PROGRESSION BAR REFORM
+
+Remove macro-stage progress bar.
+
+Instead:
+
+Each individual task must contain:
+
+A visual horizontal progress bar showing:
+Subtasks completed / total subtasks
+
+No phase naming required.
+
+PART 9 — COACH CHECK-IN BOX
+
+Replace bottom “Update Roadmap” box with:
+
+“Coach Check-In”
+
+This input must:
+
+Accept freeform updates
+
+Adjust relevant future tasks
+
+Preserve completed tasks
+
+Return structured response
+
+Always respond reliably
+
+Do not regenerate full roadmap unless necessary.
+
+PART 10 — ENCOURAGEMENT LAYER PREP
+
+Wrap system responses in:
+
+generateCoachMessage(eventType, context)
+
+Tone must be:
+
+Supportive
+
+Calm
+
+Empowering
+
+Never shaming
+
+Normalize rejection
+
+Reinforce effort
+
+No branding yet.
+
+PART 11 — REMOVE GENERIC CAREER DISCOVERY TASKS
+
+The system must NOT generate tasks like:
+
+“Figure out what roles you’re interested in.”
+
+“Research companies broadly.”
+
+“Explore different paths.”
+
+If the student has specified a professional goal:
+
+The roadmap must:
+
+Assume clarity
+
+Move immediately to positioning and networking
+
+Generate specific role-aligned tasks
+
+Only include discovery tasks IF:
+Professional goal field is vague or unclear.
+
+END RESULT
+
+After implementation:
+
+Tasks feel like guided execution, not advice.
+
+Networking is central.
+
+AI actively assists.
+
+Students cannot fake progress.
+
+Career discovery fluff is removed.
+
+International support feels thoughtful.
+
+The roadmap adapts intelligently.
+
+Do NOT break existing architecture.
