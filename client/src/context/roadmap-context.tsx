@@ -22,8 +22,39 @@ export interface CompletionGate {
 
 export interface AITemplate {
   label: string;
-  generateTemplate: (profile: StudentProfile) => string;
+  templateId: string;
   confirmationLabel: string;
+}
+
+export interface StudentProfile {
+  name: string;
+  school: string;
+  degree: string;
+  major: string;
+  yearInSchool: string;
+  goal: string;
+  isInternational: boolean;
+  currentExperience: string;
+}
+
+const templateGenerators: Record<string, (p: StudentProfile) => string> = {
+  "ib-outreach": (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[Your School]"} studying ${p.major || "[Your Major]"}. I came across your profile and was really impressed by your path in investment banking${p.isInternational ? " — especially as a fellow international professional" : ""}.\n\nI'm very interested in pursuing a career in IB and would love to learn from your experience. Would you have 15 minutes for a brief call?\n\nThank you for your time,\n[Your Name]`,
+  "ib-thankyou": (p) => `Subject: Thank you for your time\n\nHi [Contact Name],\n\nThank you so much for taking the time to speak with me today. I really appreciated hearing about your experience at [Firm], especially your insights on [specific topic discussed].\n\nAs a ${p.degree || ""} student at ${p.school || "[School]"} interested in ${p.goal || "investment banking"}, your perspective on [specific advice] was particularly valuable.\n\nI'll definitely follow your suggestion to [specific action item]. I'd love to stay in touch as I continue my preparation.\n\nBest regards,\n[Your Name]`,
+  "consulting-outreach": (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[Your School]"} studying ${p.major || "[Your Major]"}. I noticed your path from ${p.school || "[School]"} to [Firm] and would love to learn more about your experience in consulting${p.isInternational ? ", especially as an international professional" : ""}.\n\nWould you have 20 minutes for a brief call? I'd really appreciate your perspective on [specific aspect of their work].\n\nThank you,\n[Your Name]`,
+  "consulting-thankyou": (p) => `Subject: Thank you for your time\n\nHi [Contact Name],\n\nThank you for taking the time to speak with me about your experience at [Firm]. Your insights on [specific topic] were really valuable.\n\nAs a ${p.degree || ""} student at ${p.school || "[School]"} pursuing ${p.goal || "consulting"}, I found your advice about [specific point] particularly helpful. I plan to [specific action based on their advice].\n\nI'd love to stay in touch. Thank you again.\n\nBest,\n[Your Name]`,
+  "marketing-outreach": (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[School]"} studying ${p.major || "[Major]"}, focused on ${p.goal || "marketing"}. I noticed your work at [Company] and was really interested in [specific campaign/product].\n\nWould you have 15 minutes to chat about your experience in marketing${p.isInternational ? " and any advice for international candidates" : ""}?\n\nThanks,\n[Your Name]`,
+  "marketing-thankyou": (p) => `Subject: Great speaking with you today\n\nHi [Contact Name],\n\nThank you for taking the time to chat about your work at [Company]. Your perspective on [specific topic] was really insightful.\n\nI especially appreciated your advice about [specific point]. As a ${p.degree || ""} student at ${p.school || "[School]"} focused on ${p.goal || "marketing"}, that's exactly the kind of guidance I was looking for.\n\nI'll keep you posted on my progress. Thanks again!\n\nBest,\n[Your Name]`,
+  "tech-outreach": (p) => `Hey [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[School]"} interested in product/tech roles. I saw you worked on [feature/product] at [Company] — I'd love to hear how your team approached [specific challenge].\n\nWould you have 15 minutes for a quick chat${p.isInternational ? "? I'm also curious about the experience as an international professional" : ""}?\n\nThanks!\n[Your Name]`,
+  "tech-thankyou": (p) => `Hey [Contact Name],\n\nThanks so much for the chat! Your insights on [topic] were really helpful. I especially liked your point about [specific advice].\n\nAs I continue preparing for PM roles${p.isInternational ? " as an international student" : ""}, I'll definitely take your advice about [action item]. Would love to stay in touch!\n\nBest,\n[Your Name]`,
+  "general-outreach": (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[School]"} studying ${p.major || "[Major]"}. I noticed your career path and would love to learn about your experience in [their field]${p.isInternational ? ", especially any advice for international professionals" : ""}.\n\nWould you have 15 minutes for a brief call?\n\nThank you,\n[Your Name]`,
+  "general-thankyou": (p) => `Subject: Thank you for your time\n\nHi [Contact Name],\n\nThank you for speaking with me about your experience at [Company]. Your insights on [topic] were really valuable.\n\nAs a ${p.degree || ""} student at ${p.school || "[School]"} pursuing ${p.goal || "my career goals"}, your advice about [specific point] gives me a clear next step.\n\nI'd love to stay in touch as I continue my search.\n\nBest,\n[Your Name]`,
+  "general-followup": (p) => `Hi [Contact Name],\n\nI hope you're doing well. I wanted to follow up on my previous message — I'm a ${p.yearInSchool || "student"} at ${p.school || "[School]"} and I'm really interested in learning about your experience in [their field].\n\nI know you're busy and I completely understand if the timing doesn't work. If you do have 15 minutes, I'd really appreciate it.\n\nThank you,\n[Your Name]`,
+};
+
+export function getTemplateText(templateId: string, profile: StudentProfile): string {
+  const generator = templateGenerators[templateId];
+  if (!generator) return "";
+  return generator(profile);
 }
 
 export interface Task {
@@ -65,17 +96,6 @@ export interface CompanyInfo {
   roleDescription: string;
   commonSkills: string[];
   jobPageUrl: string;
-}
-
-export interface StudentProfile {
-  name: string;
-  school: string;
-  degree: string;
-  major: string;
-  yearInSchool: string;
-  goal: string;
-  isInternational: boolean;
-  currentExperience: string;
 }
 
 export interface Roadmap {
@@ -216,7 +236,7 @@ const IB_TASKS: TaskTemplate[] = [
     ],
     aiTemplate: {
       label: "Connection Request Message",
-      generateTemplate: (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[Your School]"} studying ${p.major || "[Your Major]"}. I came across your profile and was really impressed by your path in investment banking${p.isInternational ? " — especially as a fellow international professional" : ""}.\n\nI'm very interested in pursuing a career in IB and would love to learn from your experience. Would you have 15 minutes for a brief call?\n\nThank you for your time,\n[Your Name]`,
+      templateId: "ib-outreach",
       confirmationLabel: "I have sent this message.",
     },
     completionGate: { type: "text", prompt: "Paste one of the outreach messages you sent (anonymize if you prefer):", placeholder: "Hi [Name], I'm a [year] at [school] studying [major]..." },
@@ -241,7 +261,7 @@ const IB_TASKS: TaskTemplate[] = [
     ],
     aiTemplate: {
       label: "Post-Call Thank You Email",
-      generateTemplate: (p) => `Subject: Thank you for your time\n\nHi [Contact Name],\n\nThank you so much for taking the time to speak with me today. I really appreciated hearing about your experience at [Firm], especially your insights on [specific topic discussed].\n\nAs a ${p.degree || ""} student at ${p.school || "[School]"} interested in ${p.goal || "investment banking"}, your perspective on [specific advice] was particularly valuable.\n\nI'll definitely follow your suggestion to [specific action item]. I'd love to stay in touch as I continue my preparation.\n\nBest regards,\n[Your Name]`,
+      templateId: "ib-thankyou",
       confirmationLabel: "I have sent the follow-up email.",
     },
     completionGate: { type: "text", prompt: "Enter the names and firms of the 2 people you spoke with:", placeholder: "e.g., Sarah K. at Goldman Sachs, David L. at Evercore" },
@@ -335,7 +355,7 @@ const CONSULTING_TASKS: TaskTemplate[] = [
     ],
     aiTemplate: {
       label: "Connection Request Message",
-      generateTemplate: (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[Your School]"} studying ${p.major || "[Your Major]"}. I noticed your path from ${p.school || "[School]"} to [Firm] and would love to learn more about your experience in consulting${p.isInternational ? ", especially as an international professional" : ""}.\n\nWould you have 20 minutes for a brief call? I'd really appreciate your perspective on [specific aspect of their work].\n\nThank you,\n[Your Name]`,
+      templateId: "consulting-outreach",
       confirmationLabel: "I have sent this message.",
     },
     completionGate: { type: "text", prompt: "List your 5 alumni contacts with firm and role:", placeholder: "e.g., Maria T. at McKinsey, James W. at BCG..." },
@@ -358,7 +378,7 @@ const CONSULTING_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Post-Call Thank You Email",
-      generateTemplate: (p) => `Subject: Thank you for your time\n\nHi [Contact Name],\n\nThank you for taking the time to speak with me about your experience at [Firm]. Your insights on [specific topic] were really valuable.\n\nAs a ${p.degree || ""} student at ${p.school || "[School]"} pursuing ${p.goal || "consulting"}, I found your advice about [specific point] particularly helpful. I plan to [specific action based on their advice].\n\nI'd love to stay in touch. Thank you again.\n\nBest,\n[Your Name]`,
+      templateId: "consulting-thankyou",
       confirmationLabel: "I have sent the follow-up email.",
     },
     completionGate: { type: "text", prompt: "Enter the names and firms of the 3 people you spoke with:", placeholder: "e.g., Maria T. at McKinsey, James W. at BCG, Priya S. at Deloitte" },
@@ -452,7 +472,7 @@ const MARKETING_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Connection Request Message",
-      generateTemplate: (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[School]"} studying ${p.major || "[Major]"}, focused on ${p.goal || "marketing"}. I noticed your work at [Company] and was really interested in [specific campaign/product].\n\nWould you have 15 minutes to chat about your experience in marketing${p.isInternational ? " and any advice for international candidates" : ""}?\n\nThanks,\n[Your Name]`,
+      templateId: "marketing-outreach",
       confirmationLabel: "I have sent this message.",
     },
     completionGate: { type: "text", prompt: "Who did you reach out to and what's the most useful thing you learned?", placeholder: "e.g., Spoke with Ana R. (Brand Manager at P&G)..." },
@@ -474,7 +494,7 @@ const MARKETING_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Post-Call Follow-Up Email",
-      generateTemplate: (p) => `Subject: Great speaking with you today\n\nHi [Contact Name],\n\nThank you for taking the time to chat about your work at [Company]. Your perspective on [specific topic] was really insightful.\n\nI especially appreciated your advice about [specific point]. As a ${p.degree || ""} student at ${p.school || "[School]"} focused on ${p.goal || "marketing"}, that's exactly the kind of guidance I was looking for.\n\nI'll keep you posted on my progress. Thanks again!\n\nBest,\n[Your Name]`,
+      templateId: "marketing-thankyou",
       confirmationLabel: "I have sent the follow-up email.",
     },
     completionGate: { type: "text", prompt: "Who did you speak with and what are the top insights?", placeholder: "e.g., Spoke with Ana R. (Brand Manager at P&G) — learned that MBA leadership projects matter more than marketing internships..." },
@@ -566,7 +586,7 @@ const PRODUCT_TECH_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Connection Request Message",
-      generateTemplate: (p) => `Hey [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[School]"} interested in product/tech roles. I saw you worked on [feature/product] at [Company] — I'd love to hear how your team approached [specific challenge].\n\nWould you have 15 minutes for a quick chat${p.isInternational ? "? I'm also curious about the experience as an international professional" : ""}?\n\nThanks!\n[Your Name]`,
+      templateId: "tech-outreach",
       confirmationLabel: "I have sent this message.",
     },
     completionGate: { type: "text", prompt: "List your 5 contacts with company and role:", placeholder: "e.g., Kevin L. (PM at Stripe), Lisa M. (SWE at Google)..." },
@@ -587,7 +607,7 @@ const PRODUCT_TECH_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Post-Call Follow-Up",
-      generateTemplate: (p) => `Hey [Contact Name],\n\nThanks so much for the chat! Your insights on [topic] were really helpful. I especially liked your point about [specific advice].\n\nAs I continue preparing for PM roles${p.isInternational ? " as an international student" : ""}, I'll definitely take your advice about [action item]. Would love to stay in touch!\n\nBest,\n[Your Name]`,
+      templateId: "tech-thankyou",
       confirmationLabel: "I have sent the follow-up.",
     },
     completionGate: { type: "text", prompt: "Who did you speak with and what's the most useful insight?", placeholder: "e.g., Kevin L. (PM at Stripe) — data fluency valued over MBA credentials..." },
@@ -692,7 +712,7 @@ const GENERAL_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Connection Request Message",
-      generateTemplate: (p) => `Hi [Contact Name],\n\nI'm ${p.yearInSchool ? "a " + p.yearInSchool : "a student"} at ${p.school || "[School]"} studying ${p.major || "[Major]"}. I noticed your career path and would love to learn about your experience in [their field]${p.isInternational ? ", especially any advice for international professionals" : ""}.\n\nWould you have 15 minutes for a brief call?\n\nThank you,\n[Your Name]`,
+      templateId: "general-outreach",
       confirmationLabel: "I have sent this message.",
     },
     completionGate: { type: "text", prompt: "Who did you reach out to (name and company)?", placeholder: "e.g., Sarah L. at Deloitte, Mike T. at Amazon..." },
@@ -714,7 +734,7 @@ const GENERAL_TASKS: TaskTemplate[] = [
     resources: [],
     aiTemplate: {
       label: "Post-Call Thank You Email",
-      generateTemplate: (p) => `Subject: Thank you for your time\n\nHi [Contact Name],\n\nThank you for speaking with me about your experience at [Company]. Your insights on [topic] were really valuable.\n\nAs a ${p.degree || ""} student at ${p.school || "[School]"} pursuing ${p.goal || "my career goals"}, your advice about [specific point] gives me a clear next step.\n\nI'd love to stay in touch as I continue my search.\n\nBest,\n[Your Name]`,
+      templateId: "general-thankyou",
       confirmationLabel: "I have sent the follow-up email.",
     },
     completionGate: { type: "text", prompt: "Who did you speak with and what did you learn?", placeholder: "e.g., Sarah L. at Deloitte — learned that..." },
@@ -760,7 +780,7 @@ const ADAPTIVE_TASKS: Record<string, TaskTemplate> = {
     completionGate: { type: "text", prompt: "Paste your revised follow-up message:", placeholder: "Hi [Name], I wanted to follow up..." },
     aiTemplate: {
       label: "Follow-Up Message",
-      generateTemplate: (p) => `Hi [Contact Name],\n\nI hope you're doing well. I wanted to follow up on my previous message — I'm a ${p.yearInSchool || "student"} at ${p.school || "[School]"} and I'm really interested in learning about your experience in [their field].\n\nI know you're busy and I completely understand if the timing doesn't work. If you do have 15 minutes, I'd really appreciate it.\n\nThank you,\n[Your Name]`,
+      templateId: "general-followup",
       confirmationLabel: "I have sent this follow-up.",
     },
   },

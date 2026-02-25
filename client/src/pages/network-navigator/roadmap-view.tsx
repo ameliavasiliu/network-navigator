@@ -21,7 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRoadmap, Task, Contact, CompanyInfo } from "@/context/roadmap-context";
+import { useRoadmap, Task, Contact, CompanyInfo, StudentProfile, getTemplateText } from "@/context/roadmap-context";
 
 const CONTACT_STATUSES = [
   { value: "identified", label: "Identified" },
@@ -249,7 +249,7 @@ function TaskModal({
   onClose: () => void;
   onComplete: (taskId: string, evidence: string) => void;
   onToggleSubtask: (subtaskId: string) => void;
-  studentProfile: ReturnType<typeof import("@/context/roadmap-context").useRoadmap>["getStudentProfile"] extends () => infer R ? R : never;
+  studentProfile: StudentProfile;
 }) {
   const [evidenceValue, setEvidenceValue] = React.useState("");
   const [gateError, setGateError] = React.useState("");
@@ -267,7 +267,7 @@ function TaskModal({
 
   React.useEffect(() => {
     if (task.aiTemplate && !templateText) {
-      setTemplateText(task.aiTemplate.generateTemplate(studentProfile));
+      setTemplateText(getTemplateText(task.aiTemplate.templateId, studentProfile));
     }
   }, [task.aiTemplate, studentProfile]);
 
