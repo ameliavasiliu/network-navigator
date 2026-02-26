@@ -72,15 +72,32 @@ export interface Task {
   status: TaskStatus;
 }
 
+export type ContactAffiliation = "alumni" | "recruiter" | "referral" | "friend" | "other";
+
 export interface Contact {
   id: string;
   name: string;
   company: string;
   role: string;
+  affiliation: ContactAffiliation;
+  school: string;
+  email: string;
+  phone: string;
   linkedinUrl: string;
   status: "identified" | "messaged" | "responded" | "call_completed" | "referral_requested";
   notes: string;
   lastInteractionDate: string;
+}
+
+export type SavedCompanyStatus = "considering" | "applied" | "interviewing" | "rejected" | "offer";
+
+export interface SavedCompany {
+  id: string;
+  name: string;
+  overview: string;
+  careersUrl: string;
+  status: SavedCompanyStatus;
+  savedAt: string;
 }
 
 export interface CoachCheckIn {
@@ -113,6 +130,11 @@ export interface Roadmap {
   contacts: Contact[];
   checkIns: CoachCheckIn[];
   companies: CompanyInfo[];
+  savedCompanies: SavedCompany[];
+  circumstanceUpdate: string;
+  lastDailyRefresh: string;
+  lastWeeklyRefresh: string;
+  lastCompanyRefresh: string;
   createdAt: string;
 }
 
@@ -966,6 +988,13 @@ interface RoadmapContextType {
   addContact: (contact: Omit<Contact, "id">) => void;
   updateContact: (contactId: string, updates: Partial<Contact>) => void;
   deleteContact: (contactId: string) => void;
+  saveCompany: (company: Omit<SavedCompany, "id" | "savedAt">) => void;
+  updateSavedCompany: (companyId: string, updates: Partial<SavedCompany>) => void;
+  removeSavedCompany: (companyId: string) => void;
+  updateCircumstances: (text: string) => void;
+  getFollowUpSuggestions: () => Contact[];
+  getDailyTask: () => Task | null;
+  getWeeklyTask: () => Task | null;
   prefillWizardFromLastRoadmap: () => void;
   getStudentProfile: () => StudentProfile;
   isWizardComplete: () => boolean;
@@ -999,9 +1028,20 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(stored);
         const migrated = parsed.map((r: any) => ({
           ...r,
-          contacts: r.contacts || [],
+          contacts: (r.contacts || []).map((c: any) => ({
+            ...c,
+            affiliation: c.affiliation || "other",
+            school: c.school || "",
+            email: c.email || "",
+            phone: c.phone || "",
+          })),
           checkIns: r.checkIns || [],
           companies: r.companies || [],
+          savedCompanies: r.savedCompanies || [],
+          circumstanceUpdate: r.circumstanceUpdate || "",
+          lastDailyRefresh: r.lastDailyRefresh || new Date().toISOString(),
+          lastWeeklyRefresh: r.lastWeeklyRefresh || new Date().toISOString(),
+          lastCompanyRefresh: r.lastCompanyRefresh || new Date().toISOString(),
           tasks: (r.tasks || []).map((t: any) => ({
             ...t,
             subtasks: t.subtasks || (t.steps ? t.steps.map((s: string, i: number) => ({ id: `migrated-${i}`, label: s, completed: t.status === "completed" })) : []),
@@ -1081,6 +1121,11 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       contacts: [],
       checkIns: [],
       companies,
+      savedCompanies: [],
+      circumstanceUpdate: "",
+      lastDailyRefresh: new Date().toISOString(),
+      lastWeeklyRefresh: new Date().toISOString(),
+      lastCompanyRefresh: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
 
@@ -1251,6 +1296,93 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const saveCompany = (company: Omit<SavedCompany, "id" | "savedAt">) => {
+    setRoadmaps((prev) =>
+      prev.map((roadmap) => {
+        if (roadmap.id !== currentRoadmapId) return roadmap;
+        const newCompany: SavedCompany = {
+          ...company,
+          id: `saved-co-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          savedAt: new Date().toISOString(),
+        };
+        return { ...roadmap, savedCompanies: [...roadmap.savedCompanies, newCompany] };
+      })
+    );
+  };
+
+  const updateSavedCompany = (companyId: string, updates: Partial<SavedCompany>) => {
+    setRoadmaps((prev) =>
+      prev.map((roadmap) => {
+        if (roadmap.id !== currentRoadmapId) return roadmap;
+        return {
+          ...roadmap,
+          savedCompanies: roadmap.savedCompanies.map((c) =>
+            c.id === companyId ? { ...c, ...updates } : c
+          ),
+        };
+      })
+    );
+  };
+
+  const removeSavedCompany = (companyId: string) => {
+    setRoadmaps((prev) =>
+      prev.map((roadmap) => {
+        if (roadmap.id !== currentRoadmapId) return roadmap;
+        return {
+          ...roadmap,
+          savedCompanies: roadmap.savedCompanies.filter((c) => c.id !== companyId),
+        };
+      })
+    );
+  };
+
+  const updateCircumstances = (text: string) => {
+    setRoadmaps((prev) =>
+      prev.map((roadmap) => {
+        if (roadmap.id !== currentRoadmapId) return roadmap;
+        return { ...roadmap, circumstanceUpdate: text };
+      })
+    );
+  };
+
+  const getFollowUpSuggestions = (): Contact[] => {
+    if (!currentRoadmap) return [];
+    const now = new Date();
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const threeWeeksAgo = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
+
+    return currentRoadmap.contacts
+      .filter((c) => {
+        const lastDate = new Date(c.lastInteractionDate);
+        return lastDate <= twoWeeksAgo && c.status !== "referral_requested";
+      })
+      .sort((a, b) => {
+        let scoreA = 0, scoreB = 0;
+        if (a.status === "responded" || a.status === "call_completed") scoreA += 3;
+        if (b.status === "responded" || b.status === "call_completed") scoreB += 3;
+        if (a.affiliation === "alumni" || a.affiliation === "referral") scoreA += 2;
+        if (b.affiliation === "alumni" || b.affiliation === "referral") scoreB += 2;
+        const dateA = new Date(a.lastInteractionDate);
+        const dateB = new Date(b.lastInteractionDate);
+        if (dateA <= threeWeeksAgo) scoreA += 1;
+        if (dateB <= threeWeeksAgo) scoreB += 1;
+        return scoreB - scoreA;
+      })
+      .slice(0, 5);
+  };
+
+  const getDailyTask = (): Task | null => {
+    if (!currentRoadmap) return null;
+    const currentTask = currentRoadmap.tasks.find((t) => t.status === "unlocked");
+    return currentTask || null;
+  };
+
+  const getWeeklyTask = (): Task | null => {
+    if (!currentRoadmap) return null;
+    const unlocked = currentRoadmap.tasks.filter((t) => t.status === "unlocked");
+    return unlocked.length > 1 ? unlocked[1] : unlocked[0] || null;
+  };
+
   return (
     <RoadmapContext.Provider
       value={{
@@ -1266,6 +1398,13 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
         addContact,
         updateContact,
         deleteContact,
+        saveCompany,
+        updateSavedCompany,
+        removeSavedCompany,
+        updateCircumstances,
+        getFollowUpSuggestions,
+        getDailyTask,
+        getWeeklyTask,
         prefillWizardFromLastRoadmap,
         getStudentProfile,
         isWizardComplete,

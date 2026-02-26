@@ -1,0 +1,365 @@
+We are evolving the Network Navigator into a daily-use, interconnected coaching system.
+
+IMPORTANT CONSTRAINTS:
+
+Do NOT break existing intake flow.
+
+Do NOT remove roadmap generation.
+
+Do NOT break saved roadmaps.
+
+Do NOT remove current Contacts or Companies functionality.
+
+This is a structural + logic enhancement, not a redesign.
+
+HIGH-LEVEL GOAL
+
+Implement four interconnected tabs inside the generated Network Navigator experience:
+
+Tasks
+
+Roadmap
+
+Contacts
+
+Companies
+
+All four tabs must:
+
+Read from shared session data
+
+Update each other when actions occur
+
+Reflect progress consistently
+
+PART 1 — TAB ARCHITECTURE
+
+Replace current tab layout with the following order:
+
+Tasks (primary execution surface)
+
+Roadmap (strategic preview + trajectory)
+
+Contacts (relationship tracker)
+
+Companies (opportunity tracker)
+
+Use a shared data store (roadmapSession) so all tabs can read/write.
+
+PART 2 — ROADMAP TAB (STRATEGIC VIEW ONLY)
+
+Purpose:
+
+Show where the user is headed
+
+Motivate progress
+
+Prevent shallow task completion
+
+Roadmap Tab Requirements:
+
+Horizontal roadmap layout with locked future steps
+
+Users may click future steps to preview, but not act
+
+No task completion occurs in Roadmap tab
+
+No checkboxes in Roadmap tab
+
+Each roadmap step includes:
+
+Objective
+
+Why it matters
+
+Preview of subtasks (read-only)
+
+Additional Elements:
+
+At top: Estimated Time to Hire
+
+Based on role, geography, visa status, and task velocity
+
+Display as estimate only (motivational)
+
+At bottom: “Change in Circumstances” input
+
+User can describe updates (visa change, interview, referral, delay)
+
+This triggers roadmap adjustment logic
+
+Only relevant future steps update (do NOT reset completed work)
+
+PART 3 — TASKS TAB (EXECUTION ENGINE)
+
+This is where ALL progress happens.
+
+Task Structure:
+
+Display two active tasks at all times:
+
+Left: Daily Task
+
+Right: Weekly Task
+
+These tasks are pulled directly from the Roadmap.
+
+Completing tasks updates:
+
+Roadmap progression
+
+Contacts tab
+
+Companies tab
+
+Task Content Requirements:
+
+Each task must include:
+
+Objective
+
+Why this matters
+
+Optional International Considerations (collapsible)
+
+The actual task (action-based)
+
+AI assistance where applicable
+
+Upload/input validation
+
+CRITICAL CHANGE: REMOVE SHALLOW SUBTASKS
+
+Do NOT allow:
+
+Click-to-check subtasks
+
+Arbitrary text submission
+
+Instead:
+
+Each task type must have validated completion logic.
+
+Examples:
+
+Networking Task
+
+Completion requires:
+
+Adding X new contacts to Contacts tab
+
+OR updating status of existing contacts
+
+OR logging a follow-up message
+
+Resume Task (one-time only)
+
+Flow:
+
+Upload resume
+
+AI gives feedback
+
+Upload revised resume
+
+AI grades improvement
+
+Task completes
+
+Outreach Task
+
+AI generates a LinkedIn message template
+
+User must edit or approve
+
+User logs sends (minimum count required)
+
+PART 4 — CONTACTS TAB (NETWORK SYSTEM)
+
+Enhance existing Contacts tab as follows:
+
+Contact Fields:
+
+Name (required)
+
+Company
+
+Role
+
+Affiliation (alumni, recruiter, referral, friend)
+
+School
+
+Email
+
+Phone
+
+LinkedIn URL
+
+Notes (interaction history)
+
+Status dropdown:
+
+Identified
+
+Messaged
+
+Responded
+
+Call Completed
+
+Referral Requested
+
+Features:
+
+Search bar
+
+Filter by status / company / affiliation
+
+Follow-Up Suggestions button (❗)
+
+Follow-Up Suggestions logic:
+
+Prioritize:
+
+High-value companies
+
+Referral potential
+
+2–3 weeks since last interaction
+
+Return 3–5 suggested follow-ups
+
+Tasks + Roadmap must read contact notes and statuses.
+
+PART 5 — COMPANIES TAB (OPPORTUNITY TRACKER)
+
+Enhance Companies tab:
+
+Daily Recommendations:
+
+Recommend 6 companies per day
+
+Refresh daily at 12:00 AM local time
+
+Display countdown to refresh
+
+Prioritize:
+
+Small to mid-size companies
+
+Startups
+
+Firms with historical hiring volume
+
+Avoid only large mainstream firms
+
+Company Card Includes:
+
+Company overview
+
+Careers link
+
+Star/save button
+
+Saved Companies Collection:
+
+For each saved company:
+
+Status dropdown:
+
+Considering
+
+Applied
+
+Interviewing
+
+Rejected
+
+Offer
+
+Filter saved companies by status
+
+Manual add company option
+
+Tasks + Roadmap must be aware of:
+
+New companies added
+
+Applications submitted
+
+Status changes
+
+PART 6 — INTER-TAB COMMUNICATION RULES
+
+Implement shared session awareness:
+
+Adding a contact → can complete networking tasks
+
+Completing a task → updates roadmap
+
+Applying to a company → updates tasks and roadmap
+
+Contact follow-ups → generate new tasks if overdue
+
+No duplicate logic.
+All tabs reference the same roadmapSession object.
+
+PART 7 — SCHEDULING LOGIC
+
+Daily task refresh: 12:00 AM
+
+Weekly task refresh: Monday 12:00 AM
+
+Company recommendations refresh: 12:00 AM
+
+Do NOT require cron jobs yet.
+Simulate refresh based on timestamps if needed.
+
+PART 8 — AI RELIABILITY FIXES
+
+Ensure all generated links are valid and tested
+
+If unsure, say “example resource” instead of dead links
+
+AI message drafting must actually generate content
+
+International guidance must be optional and contextual
+
+PART 9 — TONE & COACHING (NO BRANDING YET)
+
+System tone must be:
+
+Encouraging
+
+Calm
+
+Non-patronizing
+
+Effort-focused
+
+Resilient to failure
+
+No mascots yet.
+Just consistent warmth.
+
+END STATE
+
+After this update:
+
+Roadmap = strategic preview
+
+Tasks = real execution
+
+Contacts = living network
+
+Companies = dynamic pipeline
+
+All parts talk to each other
+
+Users cannot fake progress
+
+Product feels usable every day
+
+Do NOT overengineer.
+Ship clean, modular improvements.
