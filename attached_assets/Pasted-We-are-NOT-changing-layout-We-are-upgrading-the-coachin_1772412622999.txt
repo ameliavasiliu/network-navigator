@@ -1,0 +1,348 @@
+We are NOT changing layout.
+
+We are upgrading the coaching intelligence and instructional depth inside the Roadmap and Task modules.
+
+DO NOT modify:
+
+Tab layout
+
+Card layout
+
+Navigation structure
+
+Contact and Company integration
+
+Refresh timing
+
+ONLY improve:
+
+Roadmap structure
+
+Task instructional depth
+
+Coaching thoroughness
+
+Learning experience quality
+
+PART 1 — ROADMAP RESTRUCTURE
+
+Current roadmap steps:
+
+Define specialization
+
+Define skillset/resume
+
+Networking
+
+Informational interviews
+
+Learning tools
+
+Applying to roles
+
+This must be restructured.
+
+NEW ROADMAP ORDER
+
+Strategic Networking (Primary Emphasis)
+
+Relationship Deepening & Informational Interviews
+
+Referral & Opportunity Conversion
+
+Application Strategy (Only After Networking)
+
+Skill & Resume Optimization (Conditional / Triggered)
+
+Interview Execution & Offer Strategy
+
+IMPORTANT LOGIC CHANGES
+
+Remove initial “define specialization” step entirely.
+
+Do NOT include career discovery unless triggered.
+
+Resume/skill optimization should only appear:
+
+If low networking response rate
+
+OR user uploads resume
+
+OR user requests help in Change in Circumstances
+
+OR system detects positioning mismatch
+
+Networking is the default entry point.
+
+UPDATE ESTIMATED TIME TO HIRE
+
+Lengthen estimate slightly.
+
+It should account for:
+
+4–12 weeks networking cycle
+
+2–6 week interview cycles
+
+Visa variability
+
+This is motivational but realistic.
+
+PART 2 — TASK COACHING DEPTH UPGRADE
+
+We are upgrading the Daily + Weekly task learning modules.
+
+The current issue:
+
+Short, one-sentence slides
+
+Barebones advice
+
+No real instruction
+
+No conceptual education
+
+No practical demonstration
+
+This must change.
+
+NEW TASK MODULE STRUCTURE
+
+When user clicks Daily or Weekly task:
+
+The flow must be:
+
+Step 1 — Concept Coaching (Deep Instruction)
+
+This section must include:
+
+A 3–6 paragraph explanation
+
+Clear coaching tone
+
+Real-world context
+
+Example scenarios
+
+Broad explanation of how the job process works
+
+Example themes to include:
+
+The job market runs on relationships, not applications
+
+Networking → conversation → referral → interview
+
+Cold outreach is normal and expected
+
+Referrals dramatically increase interview probability
+
+Most job offers come through warm introductions
+
+Explain this like a coach, not like a search engine.
+
+Step 2 — Tactical Breakdown (Very Specific Instructions)
+
+Use extremely detailed, beginner-friendly steps.
+
+Example for LinkedIn alumni networking:
+
+Go to LinkedIn.
+
+Search your university page.
+
+Click “Alumni.”
+
+Filter by location.
+
+Filter by role.
+
+Identify common skills.
+
+Click profiles.
+
+Study career paths.
+
+Draft personalized outreach message.
+
+Include:
+
+Example message template
+
+What to say in first call
+
+What NOT to say
+
+How to ask about visa
+
+How to end call gracefully
+
+When to follow up (24 hours)
+
+When to follow up again (2–3 weeks)
+
+Step 3 — Applied Practice
+
+Instead of open text box:
+
+Require meaningful action:
+
+Add contacts
+
+Draft outreach message (minimum length)
+
+Log insights
+
+Upload resume revision
+
+Add companies
+
+Change company status
+
+Answer short quiz questions
+
+Quiz examples:
+
+“Why should you avoid directly asking for a job in the first message?”
+A) It’s illegal
+B) It feels transactional and harms trust
+C) Recruiters don’t read messages
+
+Must select correct answer to proceed.
+
+Step 4 — Reflection & Reinforcement
+
+Short but meaningful reflection:
+
+What did you notice?
+
+What surprised you?
+
+What will you do differently next time?
+
+Minimum word count.
+
+PART 3 — COACHING TONE
+
+Upgrade coaching voice:
+
+Must be:
+
+Encouraging
+
+Calm
+
+Direct
+
+Structured
+
+Non-patronizing
+
+Non-generic
+
+Avoid:
+
+Generic motivational fluff
+
+“You got this!” energy without substance
+
+Corporate HR language
+
+It should feel like:
+A smart, experienced MBA career coach.
+
+PART 4 — REMOVE SHALLOW TEXT SCREENS
+
+Do NOT show:
+
+Single sentence slides
+
+Click-next filler content
+
+Each learning module should feel substantial.
+
+PART 5 — NETWORKING FIRST LOGIC
+
+Daily tasks should heavily rotate among:
+
+Add 2 new contacts
+
+Follow up with 1 dormant contact
+
+Research 1 company deeply
+
+Draft 1 outreach message
+
+Log 1 informational call
+
+Extract 3 skills from alumni profiles
+
+Study 1 career trajectory
+
+Weekly tasks should involve:
+
+5 new alumni research
+
+3 outreach messages
+
+1 informational interview
+
+1 resume iteration
+
+3 company additions
+
+PART 6 — EDUCATE ON HOW THE JOB PROCESS ACTUALLY WORKS
+
+Each early networking module should explicitly explain:
+
+The modern job flow:
+
+Identify target ecosystem
+
+Build relationships
+
+Have conversations
+
+Earn trust
+
+Discover opportunity
+
+Secure referral
+
+Interview with advantage
+
+Make this clear.
+
+Most students do not understand this.
+
+PART 7 — AI MESSAGE GENERATION FIX
+
+If task includes drafting outreach:
+
+The AI must:
+
+Actually generate a draft
+
+Personalize based on role, school, geography
+
+Allow user to edit
+
+Not fail silently
+
+END RESULT
+
+After this upgrade:
+
+Roadmap is networking-first.
+
+Tasks feel like guided training sessions.
+
+Students learn WHY before being told WHAT.
+
+Tasks require real effort.
+
+The system feels like a personal coach.
+
+No shallow filler slides.
+
+Do NOT change layout.
+Upgrade depth and logic only.

@@ -486,21 +486,47 @@ function TaskExecutionView({
   contacts: Contact[];
   savedCompanies: SavedCompany[];
 }) {
-  const [currentStep, setCurrentStep] = React.useState(0);
+  type Phase = "coaching" | "subtasks" | "quiz" | "completion";
+  const phases: Phase[] = ["coaching", "subtasks"];
+  if (task.practiceQuiz && task.practiceQuiz.length > 0) phases.push("quiz");
+  phases.push("completion");
+
+  const [currentPhase, setCurrentPhase] = React.useState<Phase>("coaching");
+  const [subtaskPage, setSubtaskPage] = React.useState(0);
+  const [quizPage, setQuizPage] = React.useState(0);
+  const [selectedAnswers, setSelectedAnswers] = React.useState<Record<number, number>>({});
+  const [revealedAnswers, setRevealedAnswers] = React.useState<Record<number, boolean>>({});
   const [evidenceValue, setEvidenceValue] = React.useState("");
   const [gateError, setGateError] = React.useState("");
   const [templateText, setTemplateText] = React.useState("");
   const [templateConfirmed, setTemplateConfirmed] = React.useState(false);
   const [templateCopied, setTemplateCopied] = React.useState(false);
   const [showInternational, setShowInternational] = React.useState(false);
+  const [reflectionInputs, setReflectionInputs] = React.useState<Record<number, string>>({});
 
   const isCompleted = task.status === "completed";
-  const totalSteps = task.subtasks.length + 2;
-  const isOverviewStep = currentStep === 0;
-  const isFinalStep = currentStep === totalSteps - 1;
-  const currentSubtaskIndex = currentStep - 1;
-  const currentSubtask = !isOverviewStep && !isFinalStep ? task.subtasks[currentSubtaskIndex] : null;
-  const progressPct = Math.round((currentStep / (totalSteps - 1)) * 100);
+  const phaseIndex = phases.indexOf(currentPhase);
+  const totalPhases = phases.length;
+  const getProgressPct = () => {
+    if (currentPhase === "completion") return 100;
+    const basePct = (phaseIndex / totalPhases) * 100;
+    const phaseWidth = 100 / totalPhases;
+    if (currentPhase === "subtasks" && task.subtasks.length > 0) {
+      return Math.round(basePct + (subtaskPage / task.subtasks.length) * phaseWidth);
+    }
+    if (currentPhase === "quiz" && task.practiceQuiz && task.practiceQuiz.length > 0) {
+      return Math.round(basePct + (quizPage / task.practiceQuiz.length) * phaseWidth);
+    }
+    return Math.round(basePct);
+  };
+  const progressPct = getProgressPct();
+
+  const phaseLabels: Record<Phase, string> = {
+    coaching: "Learn",
+    subtasks: "Practice",
+    quiz: "Check Understanding",
+    completion: "Complete",
+  };
 
   React.useEffect(() => {
     if (task.aiTemplate && !templateText) {
@@ -508,37 +534,13 @@ function TaskExecutionView({
     }
   }, [task.aiTemplate, studentProfile]);
 
-  const canAdvance = () => {
-    if (isOverviewStep) return true;
-    if (currentSubtask) return currentSubtask.completed;
-    return false;
-  };
-
-  const handleNext = () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleMarkSubtaskDone = () => {
-    if (currentSubtask && !currentSubtask.completed) {
-      onToggleSubtask(currentSubtask.id);
-    }
-  };
-
   const isNetworkingTask = /outreach|contact|network|alumni|connect|linkedin|message/i.test(task.title + " " + task.objective);
   const isCompanyTask = /company|compan|target list|firm|bank/i.test(task.title + " " + task.objective);
 
   const validateAndSubmit = () => {
     const allSubtasksDone = task.subtasks.every((s) => s.completed);
     if (!allSubtasksDone) {
-      setGateError("Please complete all steps before finishing this task.");
+      setGateError("Please complete all action steps before finishing this task.");
       return;
     }
 
@@ -596,6 +598,26 @@ function TaskExecutionView({
     setTimeout(() => setTemplateCopied(false), 2000);
   };
 
+  const goToNextPhase = () => {
+    const idx = phases.indexOf(currentPhase);
+    if (idx < phases.length - 1) {
+      setCurrentPhase(phases[idx + 1]);
+    }
+  };
+
+  const goToPrevPhase = () => {
+    const idx = phases.indexOf(currentPhase);
+    if (idx > 0) {
+      setCurrentPhase(phases[idx - 1]);
+      if (phases[idx - 1] === "subtasks") {
+        setSubtaskPage(task.subtasks.length - 1);
+      }
+    }
+  };
+
+  const currentSubtask = currentPhase === "subtasks" ? task.subtasks[subtaskPage] : null;
+  const currentQuiz = currentPhase === "quiz" && task.practiceQuiz ? task.practiceQuiz[quizPage] : null;
+
   return (
     <div className="max-w-2xl mx-auto" data-testid="task-execution-view">
       <div className="flex items-center gap-3 mb-6">
@@ -609,11 +631,30 @@ function TaskExecutionView({
         </button>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-text-secondary">
-            Step {currentStep + 1} of {totalSteps}
-          </span>
+          <div className="flex items-center gap-3">
+            {phases.map((p, i) => (
+              <button
+                key={p}
+                onClick={() => {
+                  if (i <= phaseIndex || p === "coaching") setCurrentPhase(p);
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all",
+                  currentPhase === p
+                    ? "bg-primary text-white shadow-sm"
+                    : i < phaseIndex
+                      ? "bg-green-100 text-green-700 cursor-pointer"
+                      : "bg-gray-100 text-gray-400"
+                )}
+                data-testid={`phase-${p}`}
+              >
+                {i < phaseIndex && <CheckCircle className="h-3 w-3" />}
+                <span>{phaseLabels[p]}</span>
+              </button>
+            ))}
+          </div>
           <span className="text-xs font-medium text-primary-dark">{progressPct}%</span>
         </div>
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -626,9 +667,9 @@ function TaskExecutionView({
 
       <div className="text-lg font-semibold text-text-primary mb-1">{task.title}</div>
 
-      <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm min-h-[300px]">
-        {isOverviewStep && (
-          <div className="space-y-5" data-testid="step-overview">
+      <div className="mt-4 rounded-xl border border-border bg-card p-6 shadow-sm min-h-[300px]">
+        {currentPhase === "coaching" && (
+          <div className="space-y-5" data-testid="phase-coaching">
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark mb-2">
                 <Target className="h-3.5 w-3.5" />
@@ -644,6 +685,18 @@ function TaskExecutionView({
               </div>
               <div className="text-sm text-text-secondary leading-relaxed">{task.whyItMatters}</div>
             </div>
+
+            {task.conceptCoaching && (
+              <div className="rounded-xl border border-primary/15 bg-gradient-to-b from-primary/5 to-white p-5">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark mb-3">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Coaching Guide
+                </div>
+                <div className="text-sm text-text-primary leading-relaxed whitespace-pre-line">
+                  {task.conceptCoaching}
+                </div>
+              </div>
+            )}
 
             {task.internationalConsiderations && (
               <div className="rounded-lg border border-blue-100 overflow-hidden">
@@ -669,7 +722,7 @@ function TaskExecutionView({
             {task.resources.length > 0 && (
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 flex items-center gap-1 mb-2">
-                  <BookOpen className="h-3.5 w-3.5" />
+                  <ExternalLink className="h-3.5 w-3.5" />
                   Resources
                 </div>
                 <ul className="space-y-2">
@@ -699,8 +752,8 @@ function TaskExecutionView({
           </div>
         )}
 
-        {currentSubtask && (
-          <div className="space-y-5" data-testid={`step-subtask-${currentSubtaskIndex}`}>
+        {currentPhase === "subtasks" && currentSubtask && (
+          <div className="space-y-5" data-testid={`phase-subtask-${subtaskPage}`}>
             <div className="flex items-center gap-2">
               <div className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold",
@@ -708,10 +761,10 @@ function TaskExecutionView({
                   ? "bg-green-100 border-green-400 text-green-600"
                   : "bg-primary/10 border-primary text-primary-dark"
               )}>
-                {currentSubtask.completed ? <Check className="h-4 w-4" /> : currentSubtaskIndex + 1}
+                {currentSubtask.completed ? <Check className="h-4 w-4" /> : subtaskPage + 1}
               </div>
               <div className="text-xs font-bold uppercase tracking-wider text-text-secondary">
-                Step {currentSubtaskIndex + 1} of {task.subtasks.length}
+                Action Step {subtaskPage + 1} of {task.subtasks.length}
               </div>
             </div>
 
@@ -719,38 +772,7 @@ function TaskExecutionView({
               {currentSubtask.label}
             </div>
 
-            {!currentSubtask.completed ? (
-              <Button
-                className="w-full rounded-full bg-primary font-medium"
-                onClick={handleMarkSubtaskDone}
-                data-testid="button-mark-step-done"
-              >
-                <Check className="h-4 w-4 mr-1.5" />
-                I've Done This
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-100 p-3 text-sm text-green-700">
-                <CheckCircle className="h-4 w-4" />
-                Step completed
-              </div>
-            )}
-          </div>
-        )}
-
-        {isFinalStep && (
-          <div className="space-y-5" data-testid="step-complete">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark">
-              <Sparkles className="h-3.5 w-3.5" />
-              Complete This Task
-            </div>
-
-            {!task.subtasks.every((s) => s.completed) && (
-              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3">
-                You still have incomplete steps. Go back and finish them before completing this task.
-              </div>
-            )}
-
-            {task.aiTemplate && (
+            {task.aiTemplate && subtaskPage === task.subtasks.length - 1 && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3" data-testid="modal-ai-template">
                 <div className="flex items-center gap-2 text-xs font-bold text-primary-dark">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -786,61 +808,238 @@ function TaskExecutionView({
               </div>
             )}
 
-            {isCompleted && task.completionEvidence ? (
-              <div className="rounded-lg bg-green-50 border border-green-100 p-4" data-testid="modal-evidence">
-                <div className="text-xs font-bold uppercase tracking-wider text-green-700 mb-1">Your Submission</div>
-                <div className="text-sm text-green-900 whitespace-pre-wrap">{task.completionEvidence}</div>
-              </div>
-            ) : task.completionGate.type === "confirm" ? (
-              <div className="space-y-3">
-                <div className="text-sm text-text-primary">{task.completionGate.prompt}</div>
-                {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
-                <Button
-                  className="w-full rounded-full bg-primary font-medium hover:brightness-95"
-                  onClick={validateAndSubmit}
-                  disabled={!task.subtasks.every((s) => s.completed)}
-                  data-testid="button-confirm-task"
-                >
-                  Yes, I confirm
-                </Button>
-              </div>
+            {!currentSubtask.completed ? (
+              <Button
+                className="w-full rounded-full bg-primary font-medium"
+                onClick={() => {
+                  onToggleSubtask(currentSubtask.id);
+                }}
+                data-testid="button-mark-step-done"
+              >
+                <Check className="h-4 w-4 mr-1.5" />
+                I've Done This
+              </Button>
             ) : (
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-text-primary block">{task.completionGate.prompt}</label>
-                {task.completionGate.type === "text" ? (
-                  <textarea
-                    className="w-full min-h-[100px] rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                    placeholder={task.completionGate.placeholder || ""}
-                    value={evidenceValue}
-                    onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
-                    data-testid="input-evidence"
-                  />
-                ) : (
-                  <input
-                    type="number"
-                    className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                    placeholder={task.completionGate.placeholder || ""}
-                    value={evidenceValue}
-                    onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
-                    data-testid="input-evidence"
-                  />
-                )}
-                {task.completionGate.type === "text" && evidenceValue.trim().length < 20 && evidenceValue.trim().length > 0 && (
-                  <div className="text-xs text-text-secondary">
-                    {20 - evidenceValue.trim().length} more characters needed for a valid response
-                  </div>
-                )}
-                {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
-                <Button
-                  className="w-full rounded-full bg-primary font-medium hover:brightness-95"
-                  onClick={validateAndSubmit}
-                  disabled={!task.subtasks.every((s) => s.completed)}
-                  data-testid="button-complete-task"
-                >
-                  Submit & Complete Task
-                </Button>
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-100 p-3 text-sm text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                Step completed
               </div>
             )}
+
+            <div className="flex items-center gap-1 pt-2">
+              {task.subtasks.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSubtaskPage(i)}
+                  className={cn(
+                    "h-2 rounded-full transition-all",
+                    i === subtaskPage ? "w-6 bg-primary" : task.subtasks[i].completed ? "w-2 bg-green-400" : "w-2 bg-gray-200"
+                  )}
+                  data-testid={`subtask-dot-${i}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {currentPhase === "quiz" && currentQuiz && (
+          <div className="space-y-5" data-testid={`phase-quiz-${quizPage}`}>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark">
+              <Sparkles className="h-3.5 w-3.5" />
+              Check Your Understanding ({quizPage + 1} of {task.practiceQuiz!.length})
+            </div>
+
+            <div className="text-sm font-semibold text-text-primary leading-relaxed">
+              {currentQuiz.question}
+            </div>
+
+            <div className="space-y-2">
+              {currentQuiz.options.map((option, optIdx) => {
+                const isSelected = selectedAnswers[quizPage] === optIdx;
+                const isRevealed = revealedAnswers[quizPage];
+                const isCorrect = optIdx === currentQuiz.correctIndex;
+
+                return (
+                  <button
+                    key={optIdx}
+                    onClick={() => {
+                      if (!isRevealed) {
+                        setSelectedAnswers({ ...selectedAnswers, [quizPage]: optIdx });
+                      }
+                    }}
+                    className={cn(
+                      "w-full text-left rounded-lg border-2 p-3 text-sm transition-all",
+                      !isRevealed && isSelected ? "border-primary bg-primary/5" : "",
+                      !isRevealed && !isSelected ? "border-gray-200 hover:border-gray-300 bg-white" : "",
+                      isRevealed && isCorrect ? "border-green-400 bg-green-50 text-green-800" : "",
+                      isRevealed && isSelected && !isCorrect ? "border-red-300 bg-red-50 text-red-800" : "",
+                      isRevealed && !isSelected && !isCorrect ? "border-gray-100 bg-gray-50 text-gray-400" : "",
+                    )}
+                    disabled={isRevealed}
+                    data-testid={`quiz-option-${optIdx}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold shrink-0 mt-0.5",
+                        isRevealed && isCorrect ? "border-green-500 bg-green-500 text-white" : "",
+                        isRevealed && isSelected && !isCorrect ? "border-red-400 bg-red-400 text-white" : "",
+                        !isRevealed && isSelected ? "border-primary bg-primary text-white" : "",
+                        !isRevealed && !isSelected ? "border-gray-300" : "",
+                        isRevealed && !isSelected && !isCorrect ? "border-gray-200" : "",
+                      )}>
+                        {isRevealed && isCorrect ? <Check className="h-3 w-3" /> :
+                         isRevealed && isSelected && !isCorrect ? <X className="h-3 w-3" /> :
+                         String.fromCharCode(65 + optIdx)}
+                      </div>
+                      <span>{option}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {!revealedAnswers[quizPage] && selectedAnswers[quizPage] !== undefined && (
+              <Button
+                className="w-full rounded-full bg-primary font-medium"
+                onClick={() => setRevealedAnswers({ ...revealedAnswers, [quizPage]: true })}
+                data-testid="button-check-answer"
+              >
+                Check Answer
+              </Button>
+            )}
+
+            {revealedAnswers[quizPage] && (
+              <div className={cn(
+                "rounded-lg border p-4 text-sm leading-relaxed",
+                selectedAnswers[quizPage] === currentQuiz.correctIndex
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              )} data-testid="quiz-explanation">
+                <div className="font-semibold mb-1">
+                  {selectedAnswers[quizPage] === currentQuiz.correctIndex ? "Correct!" : "Not quite."}
+                </div>
+                {currentQuiz.explanation}
+              </div>
+            )}
+
+            {task.practiceQuiz!.length > 1 && (
+              <div className="flex items-center gap-1 pt-2">
+                {task.practiceQuiz!.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setQuizPage(i)}
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      i === quizPage ? "w-6 bg-primary" : revealedAnswers[i] ? "w-2 bg-green-400" : "w-2 bg-gray-200"
+                    )}
+                    data-testid={`quiz-dot-${i}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {currentPhase === "completion" && (
+          <div className="space-y-5" data-testid="phase-completion">
+            {task.reflectionPrompts && task.reflectionPrompts.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Reflection
+                </div>
+                <div className="text-xs text-text-secondary">
+                  Take a moment to reflect on what you've learned. These aren't graded — they're for your own growth.
+                </div>
+                {task.reflectionPrompts.map((prompt, idx) => (
+                  <div key={idx} className="space-y-1.5">
+                    <label className="text-sm font-medium text-text-primary block">{prompt}</label>
+                    <textarea
+                      className="w-full min-h-[60px] rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      placeholder="Your thoughts..."
+                      value={reflectionInputs[idx] || ""}
+                      onChange={(e) => setReflectionInputs({ ...reflectionInputs, [idx]: e.target.value })}
+                      data-testid={`textarea-reflection-${idx}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t border-border pt-5 mt-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark mb-4">
+                <Sparkles className="h-3.5 w-3.5" />
+                Complete This Task
+              </div>
+
+              {!task.subtasks.every((s) => s.completed) && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
+                  You still have incomplete action steps. Go back to the Practice phase and finish them before completing.
+                </div>
+              )}
+
+              {task.aiTemplate && !templateConfirmed && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
+                  Please go back to the Practice phase and confirm the AI-generated template before completing.
+                </div>
+              )}
+
+              {isCompleted && task.completionEvidence ? (
+                <div className="rounded-lg bg-green-50 border border-green-100 p-4" data-testid="modal-evidence">
+                  <div className="text-xs font-bold uppercase tracking-wider text-green-700 mb-1">Your Submission</div>
+                  <div className="text-sm text-green-900 whitespace-pre-wrap">{task.completionEvidence}</div>
+                </div>
+              ) : task.completionGate.type === "confirm" ? (
+                <div className="space-y-3">
+                  <div className="text-sm text-text-primary">{task.completionGate.prompt}</div>
+                  {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
+                  <Button
+                    className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                    onClick={validateAndSubmit}
+                    disabled={!task.subtasks.every((s) => s.completed)}
+                    data-testid="button-confirm-task"
+                  >
+                    Yes, I confirm
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-text-primary block">{task.completionGate.prompt}</label>
+                  {task.completionGate.type === "text" ? (
+                    <textarea
+                      className="w-full min-h-[100px] rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      placeholder={task.completionGate.placeholder || ""}
+                      value={evidenceValue}
+                      onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
+                      data-testid="input-evidence"
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      placeholder={task.completionGate.placeholder || ""}
+                      value={evidenceValue}
+                      onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
+                      data-testid="input-evidence"
+                    />
+                  )}
+                  {task.completionGate.type === "text" && evidenceValue.trim().length < 20 && evidenceValue.trim().length > 0 && (
+                    <div className="text-xs text-text-secondary">
+                      {20 - evidenceValue.trim().length} more characters needed
+                    </div>
+                  )}
+                  {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
+                  <Button
+                    className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                    onClick={validateAndSubmit}
+                    disabled={!task.subtasks.every((s) => s.completed)}
+                    data-testid="button-complete-task"
+                  >
+                    Submit & Complete Task
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -849,21 +1048,43 @@ function TaskExecutionView({
         <Button
           variant="outline"
           className="rounded-full gap-1"
-          onClick={handlePrev}
-          disabled={currentStep === 0}
+          onClick={() => {
+            if (currentPhase === "subtasks" && subtaskPage > 0) {
+              setSubtaskPage(subtaskPage - 1);
+            } else if (currentPhase === "quiz" && quizPage > 0) {
+              setQuizPage(quizPage - 1);
+            } else {
+              goToPrevPhase();
+            }
+          }}
+          disabled={phaseIndex === 0 && (currentPhase !== "subtasks" || subtaskPage === 0)}
           data-testid="button-step-prev"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Previous
         </Button>
-        {!isFinalStep && (
+        {currentPhase !== "completion" && (
           <Button
             className="rounded-full bg-primary gap-1"
-            onClick={handleNext}
-            disabled={!canAdvance() && !isOverviewStep}
+            onClick={() => {
+              if (currentPhase === "subtasks" && subtaskPage < task.subtasks.length - 1) {
+                setSubtaskPage(subtaskPage + 1);
+              } else if (currentPhase === "quiz" && task.practiceQuiz && quizPage < task.practiceQuiz.length - 1) {
+                setQuizPage(quizPage + 1);
+              } else {
+                goToNextPhase();
+              }
+            }}
+            disabled={
+              currentPhase === "subtasks" && currentSubtask && !currentSubtask.completed && subtaskPage === task.subtasks.findIndex(s => !s.completed)
+            }
             data-testid="button-step-next"
           >
-            Next
+            {currentPhase === "subtasks" && subtaskPage < task.subtasks.length - 1
+              ? "Next Step"
+              : currentPhase === "quiz" && task.practiceQuiz && quizPage < task.practiceQuiz.length - 1
+                ? "Next Question"
+                : `Continue to ${phaseLabels[phases[phaseIndex + 1]] || "Next"}`}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         )}
