@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
-  ChevronRight,
   Lock,
   Sparkles,
   CheckCircle,
@@ -19,7 +18,6 @@ import {
   Copy,
   Check,
   Search,
-  Filter,
   AlertCircle,
   Star,
   Clock,
@@ -27,6 +25,13 @@ import {
   ListChecks,
   Eye,
   RefreshCw,
+  ArrowLeft,
+  ArrowRight,
+  Target,
+  TrendingUp,
+  Zap,
+  Sun,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -65,18 +70,70 @@ const SAVED_COMPANY_STATUSES = [
   { value: "offer", label: "Offer" },
 ] as const;
 
-function getEstimatedTimeToHire(category: string, completedCount: number, totalTasks: number): string {
+function getEstimatedTimeToHire(roadmap: any): string {
   const baseWeeks: Record<string, number> = {
     finance: 16, consulting: 14, marketing: 10, tech: 12, general: 12,
   };
-  const base = baseWeeks[category] || 12;
-  const progress = totalTasks > 0 ? completedCount / totalTasks : 0;
-  const remaining = Math.max(2, Math.round(base * (1 - progress)));
-  if (remaining <= 2) return "2-4 weeks";
-  if (remaining <= 4) return "3-5 weeks";
-  if (remaining <= 8) return "6-8 weeks";
-  if (remaining <= 12) return "8-12 weeks";
-  return "12-16 weeks";
+  const base = baseWeeks[roadmap.goalCategory] || 12;
+  const tasks = roadmap.tasks || [];
+  const contacts = roadmap.contacts || [];
+  const saved = roadmap.savedCompanies || [];
+
+  const completedCount = tasks.filter((t: Task) => t.status === "completed").length;
+  const totalTasks = tasks.length;
+  const taskProgress = totalTasks > 0 ? completedCount / totalTasks : 0;
+
+  const contactBonus = Math.min(contacts.length * 0.02, 0.15);
+  const callsCompleted = contacts.filter((c: Contact) =>
+    c.status === "call_completed" || c.status === "referral_requested"
+  ).length;
+  const callBonus = Math.min(callsCompleted * 0.03, 0.15);
+
+  const applications = saved.filter((c: SavedCompany) =>
+    c.status === "applied" || c.status === "interviewing"
+  ).length;
+  const appBonus = Math.min(applications * 0.05, 0.2);
+  const interviews = saved.filter((c: SavedCompany) => c.status === "interviewing").length;
+  const interviewBonus = Math.min(interviews * 0.1, 0.3);
+
+  const totalProgress = Math.min(taskProgress + contactBonus + callBonus + appBonus + interviewBonus, 0.95);
+  const remaining = Math.max(1, Math.round(base * (1 - totalProgress)));
+
+  if (remaining <= 2) return "1–2 weeks";
+  if (remaining <= 4) return "2–4 weeks";
+  if (remaining <= 6) return "4–6 weeks";
+  if (remaining <= 8) return "6–8 weeks";
+  if (remaining <= 12) return "8–12 weeks";
+  return "12–16 weeks";
+}
+
+function getMilestoneInfo(roadmap: any): { phase: string; progress: number; nextMilestone: string } {
+  const contacts = roadmap.contacts || [];
+  const saved = roadmap.savedCompanies || [];
+  const completedTasks = (roadmap.tasks || []).filter((t: Task) => t.status === "completed").length;
+
+  const contactCount = contacts.length;
+  const callCount = contacts.filter((c: Contact) =>
+    c.status === "call_completed" || c.status === "referral_requested"
+  ).length;
+  const applicationCount = saved.filter((c: SavedCompany) =>
+    ["applied", "interviewing", "offer"].includes(c.status)
+  ).length;
+  const interviewCount = saved.filter((c: SavedCompany) => c.status === "interviewing").length;
+
+  if (interviewCount > 0)
+    return { phase: "Interview Prep", progress: 85, nextMilestone: "Convert interviews to offers" };
+  if (applicationCount >= 3)
+    return { phase: "Active Applications", progress: 70, nextMilestone: "Follow up on applications" };
+  if (callCount >= 2)
+    return { phase: "Referral Building", progress: 55, nextMilestone: `Apply to ${Math.max(0, 3 - applicationCount)} more companies` };
+  if (contactCount >= 10)
+    return { phase: "Active Networking", progress: 40, nextMilestone: `Complete ${Math.max(0, 2 - callCount)} more calls` };
+  if (contactCount >= 5)
+    return { phase: "Growing Network", progress: 25, nextMilestone: `Add ${Math.max(0, 10 - contactCount)} more contacts` };
+  if (completedTasks >= 2)
+    return { phase: "Building Foundation", progress: 15, nextMilestone: `Add ${Math.max(0, 5 - contactCount)} contacts` };
+  return { phase: "Getting Started", progress: 5, nextMilestone: "Complete your first 2 tasks" };
 }
 
 export default function RoadmapView() {
@@ -100,10 +157,11 @@ export default function RoadmapView() {
     getWeeklyTask,
     getStudentProfile,
   } = useRoadmap();
-  const [openTaskId, setOpenTaskId] = React.useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = React.useState<"tasks" | "roadmap" | "contacts" | "companies">("tasks");
+  const [executingTaskId, setExecutingTaskId] = React.useState<string | null>(null);
   const [previewTaskId, setPreviewTaskId] = React.useState<string | null>(null);
   const [checkInText, setCheckInText] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState<"tasks" | "roadmap" | "contacts" | "companies">("tasks");
 
   const roadmap = roadmaps.find((r) => r.id === params.roadmapId);
 
@@ -135,7 +193,7 @@ export default function RoadmapView() {
 
   const handleCompleteTask = (taskId: string, evidence: string) => {
     completeTask(taskId, evidence);
-    setOpenTaskId(null);
+    setExecutingTaskId(null);
   };
 
   const handleSaveCheckIn = () => {
@@ -145,10 +203,26 @@ export default function RoadmapView() {
     }
   };
 
+  const executingTask = executingTaskId ? roadmap.tasks.find((t) => t.id === executingTaskId) : null;
+  const previewTask = previewTaskId ? roadmap.tasks.find((t) => t.id === previewTaskId) : null;
   const completedCount = roadmap.tasks.filter((t) => t.status === "completed").length;
   const totalTasks = roadmap.tasks.length;
-  const openTask = openTaskId ? roadmap.tasks.find((t) => t.id === openTaskId) : null;
-  const previewTask = previewTaskId ? roadmap.tasks.find((t) => t.id === previewTaskId) : null;
+
+  if (executingTask) {
+    return (
+      <div className="space-y-6" data-testid="screen-roadmap-view">
+        <TaskExecutionView
+          task={executingTask}
+          onBack={() => setExecutingTaskId(null)}
+          onComplete={handleCompleteTask}
+          onToggleSubtask={(subtaskId) => toggleSubtask(executingTask.id, subtaskId)}
+          studentProfile={getStudentProfile()}
+          contacts={roadmap.contacts}
+          savedCompanies={roadmap.savedCompanies}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="screen-roadmap-view">
@@ -197,13 +271,12 @@ export default function RoadmapView() {
       {activeTab === "tasks" && (
         <TasksTab
           roadmap={roadmap}
-          onOpenTask={setOpenTaskId}
+          onStartTask={setExecutingTaskId}
           checkInText={checkInText}
           setCheckInText={setCheckInText}
           onSaveCheckIn={handleSaveCheckIn}
           getDailyTask={getDailyTask}
           getWeeklyTask={getWeeklyTask}
-          getStudentProfile={getStudentProfile}
         />
       )}
 
@@ -236,16 +309,6 @@ export default function RoadmapView() {
         />
       )}
 
-      {openTask && (
-        <TaskModal
-          task={openTask}
-          onClose={() => setOpenTaskId(null)}
-          onComplete={handleCompleteTask}
-          onToggleSubtask={(subtaskId) => toggleSubtask(openTask.id, subtaskId)}
-          studentProfile={getStudentProfile()}
-        />
-      )}
-
       {previewTask && (
         <TaskPreviewModal
           task={previewTask}
@@ -258,22 +321,20 @@ export default function RoadmapView() {
 
 function TasksTab({
   roadmap,
-  onOpenTask,
+  onStartTask,
   checkInText,
   setCheckInText,
   onSaveCheckIn,
   getDailyTask,
   getWeeklyTask,
-  getStudentProfile,
 }: {
   roadmap: any;
-  onOpenTask: (id: string) => void;
+  onStartTask: (id: string) => void;
   checkInText: string;
   setCheckInText: (val: string) => void;
   onSaveCheckIn: () => void;
   getDailyTask: () => Task | null;
   getWeeklyTask: () => Task | null;
-  getStudentProfile: () => StudentProfile;
 }) {
   const dailyTask = getDailyTask();
   const weeklyTask = getWeeklyTask();
@@ -283,19 +344,23 @@ function TasksTab({
     <div className="space-y-6" data-testid="tasks-tab">
       <div className={cn("grid gap-4", hasTwoDistinct ? "md:grid-cols-2" : "grid-cols-1")} data-testid="active-tasks">
         {dailyTask && (
-          <ActiveTaskCard
+          <TaskCard
             task={dailyTask}
-            label="Current Task"
-            sublabel="Your next step forward"
-            onOpen={() => onOpenTask(dailyTask.id)}
+            label="Today's Task"
+            sublabel="Your daily coaching module"
+            icon={<Sun className="h-3.5 w-3.5" />}
+            accentColor="primary"
+            onStart={() => onStartTask(dailyTask.id)}
           />
         )}
         {hasTwoDistinct && weeklyTask && (
-          <ActiveTaskCard
+          <TaskCard
             task={weeklyTask}
-            label="Up Next"
-            sublabel="Coming up after your current task"
-            onOpen={() => onOpenTask(weeklyTask.id)}
+            label="This Week's Task"
+            sublabel="Your deeper weekly effort"
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            accentColor="blue"
+            onStart={() => onStartTask(weeklyTask.id)}
           />
         )}
         {!dailyTask && !weeklyTask && (
@@ -307,69 +372,21 @@ function TasksTab({
         )}
       </div>
 
-      <div className="space-y-2" data-testid="task-list">
-        <div className="text-xs font-semibold uppercase tracking-wider text-text-secondary px-1">All Tasks</div>
-        {roadmap.tasks.map((t: Task, idx: number) => {
-          const isLocked = t.status === "locked";
-          const isCompleted = t.status === "completed";
-          const subtasksDone = t.subtasks.filter((s) => s.completed).length;
-          const subtasksTotal = t.subtasks.length;
-          const subtaskPct = subtasksTotal > 0 ? Math.round((subtasksDone / subtasksTotal) * 100) : 0;
-
-          return (
-            <div
-              key={t.id}
-              className={cn(
-                "rounded-xl border bg-card shadow-sm transition-all",
-                isLocked ? "opacity-50 border-gray-200" : "border-border hover:shadow-md cursor-pointer",
-                isCompleted ? "border-green-200 bg-green-50/30" : ""
-              )}
-              data-testid={`card-task-${t.id}`}
-            >
-              <div
-                className="flex items-center gap-3 px-4 py-3"
-                onClick={() => { if (!isLocked) onOpenTask(t.id); }}
-                data-testid={`row-task-${t.id}`}
-              >
-                <div className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
-                  isLocked ? "bg-gray-100 border-gray-200 text-gray-400" : "",
-                  isCompleted ? "bg-green-100 border-green-200 text-green-600" : "",
-                  !isLocked && !isCompleted ? "bg-primary/10 border-primary/10 text-primary-dark" : "",
-                )}>
-                  {isLocked ? <Lock className="h-4 w-4" /> : isCompleted ? <CheckCircle className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className={cn("text-sm font-semibold", isLocked ? "text-text-secondary" : isCompleted ? "text-green-700" : "text-text-primary")}>
-                    {idx + 1}. {t.title}
-                  </div>
-                  {!isLocked && (
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[200px]">
-                        <div
-                          className={cn("h-full rounded-full transition-all", isCompleted ? "bg-green-500" : "bg-primary")}
-                          style={{ width: `${subtaskPct}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-text-secondary">{subtasksDone}/{subtasksTotal}</span>
-                    </div>
-                  )}
-                </div>
-                {!isLocked && (
-                  <ChevronRight className="h-4 w-4 text-text-secondary shrink-0" />
-                )}
-              </div>
-              {isLocked && (
-                <div className="px-4 pb-3">
-                  <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 text-xs text-text-secondary">
-                    <Lock className="h-3 w-3" />
-                    <span>Complete previous task to unlock</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-3 gap-3" data-testid="activity-snapshot">
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <div className="text-lg font-bold text-primary-dark" data-testid="text-contact-count">{roadmap.contacts.length}</div>
+          <div className="text-xs text-text-secondary mt-0.5">Contacts</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <div className="text-lg font-bold text-primary-dark" data-testid="text-company-count">{roadmap.savedCompanies.length}</div>
+          <div className="text-xs text-text-secondary mt-0.5">Saved Companies</div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 text-center">
+          <div className="text-lg font-bold text-primary-dark" data-testid="text-tasks-done">
+            {roadmap.tasks.filter((t: Task) => t.status === "completed").length}/{roadmap.tasks.length}
+          </div>
+          <div className="text-xs text-text-secondary mt-0.5">Tasks Done</div>
+        </div>
       </div>
 
       <CoachCheckInSection
@@ -382,42 +399,474 @@ function TasksTab({
   );
 }
 
-function ActiveTaskCard({
+function TaskCard({
   task,
   label,
   sublabel,
-  onOpen,
+  icon,
+  accentColor,
+  onStart,
 }: {
   task: Task;
   label: string;
   sublabel: string;
-  onOpen: () => void;
+  icon: React.ReactNode;
+  accentColor: "primary" | "blue";
+  onStart: () => void;
 }) {
   const subtasksDone = task.subtasks.filter((s) => s.completed).length;
   const subtasksTotal = task.subtasks.length;
+  const isBlue = accentColor === "blue";
 
   return (
     <div
-      className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-white p-5 shadow-sm cursor-pointer hover:shadow-md transition-all"
-      onClick={onOpen}
-      data-testid={`active-task-${task.id}`}
+      className={cn(
+        "rounded-xl border-2 p-5 shadow-sm cursor-pointer hover:shadow-md transition-all",
+        isBlue
+          ? "border-blue-200 bg-gradient-to-br from-blue-50 to-white"
+          : "border-primary/30 bg-gradient-to-br from-primary/5 to-white"
+      )}
+      onClick={onStart}
+      data-testid={`task-card-${task.id}`}
     >
       <div className="flex items-center gap-2 mb-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-primary-dark">
-          <Sparkles className="h-3.5 w-3.5" />
+        <div className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-lg",
+          isBlue ? "bg-blue-100 text-blue-600" : "bg-primary/20 text-primary-dark"
+        )}>
+          {icon}
         </div>
         <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-primary-dark">{label}</div>
+          <div className={cn(
+            "text-xs font-bold uppercase tracking-wider",
+            isBlue ? "text-blue-700" : "text-primary-dark"
+          )}>{label}</div>
           <div className="text-xs text-text-secondary">{sublabel}</div>
         </div>
       </div>
       <div className="text-sm font-semibold text-text-primary mb-2">{task.title}</div>
       <div className="text-xs text-text-secondary line-clamp-2 mb-3">{task.objective}</div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${subtasksTotal > 0 ? Math.round((subtasksDone / subtasksTotal) * 100) : 0}%` }} />
+          <div
+            className={cn("h-full rounded-full transition-all", isBlue ? "bg-blue-500" : "bg-primary")}
+            style={{ width: `${subtasksTotal > 0 ? Math.round((subtasksDone / subtasksTotal) * 100) : 0}%` }}
+          />
         </div>
         <span className="text-xs text-text-secondary font-medium">{subtasksDone}/{subtasksTotal}</span>
+      </div>
+      <Button
+        className={cn(
+          "w-full rounded-full text-sm font-medium",
+          isBlue ? "bg-blue-600 hover:bg-blue-700" : "bg-primary hover:brightness-95"
+        )}
+        data-testid={`button-start-${task.id}`}
+      >
+        <Zap className="h-3.5 w-3.5 mr-1" />
+        Start Task
+      </Button>
+    </div>
+  );
+}
+
+function TaskExecutionView({
+  task,
+  onBack,
+  onComplete,
+  onToggleSubtask,
+  studentProfile,
+  contacts,
+  savedCompanies,
+}: {
+  task: Task;
+  onBack: () => void;
+  onComplete: (taskId: string, evidence: string) => void;
+  onToggleSubtask: (subtaskId: string) => void;
+  studentProfile: StudentProfile;
+  contacts: Contact[];
+  savedCompanies: SavedCompany[];
+}) {
+  const [currentStep, setCurrentStep] = React.useState(0);
+  const [evidenceValue, setEvidenceValue] = React.useState("");
+  const [gateError, setGateError] = React.useState("");
+  const [templateText, setTemplateText] = React.useState("");
+  const [templateConfirmed, setTemplateConfirmed] = React.useState(false);
+  const [templateCopied, setTemplateCopied] = React.useState(false);
+  const [showInternational, setShowInternational] = React.useState(false);
+
+  const isCompleted = task.status === "completed";
+  const totalSteps = task.subtasks.length + 2;
+  const isOverviewStep = currentStep === 0;
+  const isFinalStep = currentStep === totalSteps - 1;
+  const currentSubtaskIndex = currentStep - 1;
+  const currentSubtask = !isOverviewStep && !isFinalStep ? task.subtasks[currentSubtaskIndex] : null;
+  const progressPct = Math.round((currentStep / (totalSteps - 1)) * 100);
+
+  React.useEffect(() => {
+    if (task.aiTemplate && !templateText) {
+      setTemplateText(getTemplateText(task.aiTemplate.templateId, studentProfile));
+    }
+  }, [task.aiTemplate, studentProfile]);
+
+  const canAdvance = () => {
+    if (isOverviewStep) return true;
+    if (currentSubtask) return currentSubtask.completed;
+    return false;
+  };
+
+  const handleNext = () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleMarkSubtaskDone = () => {
+    if (currentSubtask && !currentSubtask.completed) {
+      onToggleSubtask(currentSubtask.id);
+    }
+  };
+
+  const isNetworkingTask = /outreach|contact|network|alumni|connect|linkedin|message/i.test(task.title + " " + task.objective);
+  const isCompanyTask = /company|compan|target list|firm|bank/i.test(task.title + " " + task.objective);
+
+  const validateAndSubmit = () => {
+    const allSubtasksDone = task.subtasks.every((s) => s.completed);
+    if (!allSubtasksDone) {
+      setGateError("Please complete all steps before finishing this task.");
+      return;
+    }
+
+    if (task.aiTemplate && !templateConfirmed) {
+      setGateError("Please confirm you've used the AI-generated template before completing this task.");
+      return;
+    }
+
+    if (isNetworkingTask && contacts.length === 0) {
+      setGateError("This task requires adding contacts. Go to the Contacts tab to add at least one contact first.");
+      return;
+    }
+
+    if (isCompanyTask && savedCompanies.length === 0) {
+      setGateError("This task requires saving companies. Go to the Companies tab to save at least one company first.");
+      return;
+    }
+
+    if (task.completionGate.type === "confirm") {
+      onComplete(task.id, "confirmed");
+      return;
+    }
+
+    if (task.completionGate.type === "number") {
+      const num = Number(evidenceValue);
+      if (isNaN(num) || evidenceValue.trim().length === 0) {
+        setGateError("Please enter a valid number.");
+        return;
+      }
+      if (num <= 0) {
+        setGateError("Please enter a number greater than 0.");
+        return;
+      }
+      onComplete(task.id, evidenceValue.trim());
+      return;
+    }
+
+    const trimmed = evidenceValue.trim();
+    if (trimmed.length < 20) {
+      setGateError("Please provide a more detailed response (at least 20 characters).");
+      return;
+    }
+    const wordCount = trimmed.split(/\s+/).length;
+    if (wordCount < 3) {
+      setGateError("Please write at least a few words describing your work.");
+      return;
+    }
+
+    onComplete(task.id, trimmed);
+  };
+
+  const handleCopyTemplate = () => {
+    navigator.clipboard.writeText(templateText);
+    setTemplateCopied(true);
+    setTimeout(() => setTemplateCopied(false), 2000);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto" data-testid="task-execution-view">
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
+          data-testid="button-back-to-tasks"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Tasks
+        </button>
+      </div>
+
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-text-secondary">
+            Step {currentStep + 1} of {totalSteps}
+          </span>
+          <span className="text-xs font-medium text-primary-dark">{progressPct}%</span>
+        </div>
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="text-lg font-semibold text-text-primary mb-1">{task.title}</div>
+
+      <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm min-h-[300px]">
+        {isOverviewStep && (
+          <div className="space-y-5" data-testid="step-overview">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark mb-2">
+                <Target className="h-3.5 w-3.5" />
+                Objective
+              </div>
+              <div className="text-sm text-text-primary leading-relaxed">{task.objective}</div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-text-secondary/70 mb-2">
+                <TrendingUp className="h-3.5 w-3.5" />
+                Why This Matters
+              </div>
+              <div className="text-sm text-text-secondary leading-relaxed">{task.whyItMatters}</div>
+            </div>
+
+            {task.internationalConsiderations && (
+              <div className="rounded-lg border border-blue-100 overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between p-3 bg-blue-50 text-left"
+                  onClick={() => setShowInternational(!showInternational)}
+                  data-testid="button-toggle-international"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+                    <Globe className="h-3.5 w-3.5" />
+                    International Considerations
+                  </div>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-blue-600 transition-transform", showInternational ? "rotate-180" : "")} />
+                </button>
+                {showInternational && (
+                  <div className="p-3 bg-blue-50/50">
+                    <div className="text-xs text-blue-800 leading-relaxed">{task.internationalConsiderations}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {task.resources.length > 0 && (
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 flex items-center gap-1 mb-2">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Resources
+                </div>
+                <ul className="space-y-2">
+                  {task.resources.map((resource, idx) => (
+                    <li key={idx}>
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:text-primary-dark"
+                        data-testid={`link-resource-${idx}`}
+                      >
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        {resource.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="rounded-lg bg-gray-50 border border-gray-100 p-3 flex items-center gap-4 text-xs text-text-secondary" data-testid="activity-context">
+              <span><strong className="text-text-primary">{contacts.length}</strong> contacts tracked</span>
+              <span>·</span>
+              <span><strong className="text-text-primary">{savedCompanies.length}</strong> companies saved</span>
+            </div>
+          </div>
+        )}
+
+        {currentSubtask && (
+          <div className="space-y-5" data-testid={`step-subtask-${currentSubtaskIndex}`}>
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold",
+                currentSubtask.completed
+                  ? "bg-green-100 border-green-400 text-green-600"
+                  : "bg-primary/10 border-primary text-primary-dark"
+              )}>
+                {currentSubtask.completed ? <Check className="h-4 w-4" /> : currentSubtaskIndex + 1}
+              </div>
+              <div className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+                Step {currentSubtaskIndex + 1} of {task.subtasks.length}
+              </div>
+            </div>
+
+            <div className="text-sm font-medium text-text-primary leading-relaxed bg-gray-50 rounded-lg p-4 border border-gray-100">
+              {currentSubtask.label}
+            </div>
+
+            {!currentSubtask.completed ? (
+              <Button
+                className="w-full rounded-full bg-primary font-medium"
+                onClick={handleMarkSubtaskDone}
+                data-testid="button-mark-step-done"
+              >
+                <Check className="h-4 w-4 mr-1.5" />
+                I've Done This
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-100 p-3 text-sm text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                Step completed
+              </div>
+            )}
+          </div>
+        )}
+
+        {isFinalStep && (
+          <div className="space-y-5" data-testid="step-complete">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-dark">
+              <Sparkles className="h-3.5 w-3.5" />
+              Complete This Task
+            </div>
+
+            {!task.subtasks.every((s) => s.completed) && (
+              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3">
+                You still have incomplete steps. Go back and finish them before completing this task.
+              </div>
+            )}
+
+            {task.aiTemplate && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3" data-testid="modal-ai-template">
+                <div className="flex items-center gap-2 text-xs font-bold text-primary-dark">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI-Generated Template: {task.aiTemplate.label}
+                </div>
+                <textarea
+                  className="w-full min-h-[120px] rounded-lg border border-primary/20 bg-white px-3 py-2 text-sm whitespace-pre-wrap outline-none focus:border-primary"
+                  value={templateText}
+                  onChange={(e) => setTemplateText(e.target.value)}
+                  data-testid="textarea-ai-template"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="rounded-full text-xs h-8 px-3 gap-1"
+                    onClick={handleCopyTemplate}
+                    data-testid="button-copy-template"
+                  >
+                    {templateCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {templateCopied ? "Copied" : "Copy"}
+                  </Button>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={templateConfirmed}
+                      onChange={(e) => setTemplateConfirmed(e.target.checked)}
+                      className="rounded accent-primary"
+                      data-testid="checkbox-template-confirm"
+                    />
+                    <span className="text-text-primary">{task.aiTemplate.confirmationLabel}</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {isCompleted && task.completionEvidence ? (
+              <div className="rounded-lg bg-green-50 border border-green-100 p-4" data-testid="modal-evidence">
+                <div className="text-xs font-bold uppercase tracking-wider text-green-700 mb-1">Your Submission</div>
+                <div className="text-sm text-green-900 whitespace-pre-wrap">{task.completionEvidence}</div>
+              </div>
+            ) : task.completionGate.type === "confirm" ? (
+              <div className="space-y-3">
+                <div className="text-sm text-text-primary">{task.completionGate.prompt}</div>
+                {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
+                <Button
+                  className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                  onClick={validateAndSubmit}
+                  disabled={!task.subtasks.every((s) => s.completed)}
+                  data-testid="button-confirm-task"
+                >
+                  Yes, I confirm
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-text-primary block">{task.completionGate.prompt}</label>
+                {task.completionGate.type === "text" ? (
+                  <textarea
+                    className="w-full min-h-[100px] rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    placeholder={task.completionGate.placeholder || ""}
+                    value={evidenceValue}
+                    onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
+                    data-testid="input-evidence"
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                    placeholder={task.completionGate.placeholder || ""}
+                    value={evidenceValue}
+                    onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
+                    data-testid="input-evidence"
+                  />
+                )}
+                {task.completionGate.type === "text" && evidenceValue.trim().length < 20 && evidenceValue.trim().length > 0 && (
+                  <div className="text-xs text-text-secondary">
+                    {20 - evidenceValue.trim().length} more characters needed for a valid response
+                  </div>
+                )}
+                {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
+                <Button
+                  className="w-full rounded-full bg-primary font-medium hover:brightness-95"
+                  onClick={validateAndSubmit}
+                  disabled={!task.subtasks.every((s) => s.completed)}
+                  data-testid="button-complete-task"
+                >
+                  Submit & Complete Task
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between mt-4">
+        <Button
+          variant="outline"
+          className="rounded-full gap-1"
+          onClick={handlePrev}
+          disabled={currentStep === 0}
+          data-testid="button-step-prev"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Previous
+        </Button>
+        {!isFinalStep && (
+          <Button
+            className="rounded-full bg-primary gap-1"
+            onClick={handleNext}
+            disabled={!canAdvance() && !isOverviewStep}
+            data-testid="button-step-next"
+          >
+            Next
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -432,81 +881,155 @@ function RoadmapTab({
   onPreviewTask: (id: string) => void;
   updateCircumstances: (text: string) => void;
 }) {
-  const [circumstanceText, setCircumstanceText] = React.useState(roadmap.circumstanceUpdate || "");
+  const [circumstanceText, setCircumstanceText] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
+  const estimate = getEstimatedTimeToHire(roadmap);
+  const milestone = getMilestoneInfo(roadmap);
   const completedCount = roadmap.tasks.filter((t: Task) => t.status === "completed").length;
-  const totalTasks = roadmap.tasks.length;
-  const estimate = getEstimatedTimeToHire(roadmap.goalCategory, completedCount, totalTasks);
 
-  const handleSaveCircumstances = () => {
-    updateCircumstances(circumstanceText);
+  const handleSubmitCircumstances = () => {
+    if (!circumstanceText.trim()) return;
+    updateCircumstances(circumstanceText.trim());
+    setSubmitted(true);
+    setCircumstanceText("");
+    setTimeout(() => setSubmitted(false), 4000);
   };
+
+  const currentTaskIndex = roadmap.tasks.findIndex((t: Task) => t.status === "unlocked");
 
   return (
     <div className="space-y-6" data-testid="roadmap-tab">
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between" data-testid="estimated-time">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-primary-dark">Estimated Time to Hire</div>
-          <div className="text-xs text-text-secondary mt-0.5">Based on your track, progress, and typical timelines</div>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4" data-testid="estimated-time">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-primary-dark">Estimated Time to Hire</div>
+            <div className="text-xs text-text-secondary mt-0.5">
+              Based on task completion, networking activity, and interview progress
+            </div>
+          </div>
+          <div className="text-lg font-bold text-primary-dark">{estimate}</div>
         </div>
-        <div className="text-lg font-bold text-primary-dark">{estimate}</div>
       </div>
 
-      <div className="space-y-1" data-testid="roadmap-steps">
-        <div className="text-xs font-semibold uppercase tracking-wider text-text-secondary px-1 mb-3">Your Journey</div>
-        <div className="relative">
-          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" />
-          {roadmap.tasks.map((task: Task, idx: number) => {
-            const isCompleted = task.status === "completed";
-            const isUnlocked = task.status === "unlocked";
-            const isLocked = task.status === "locked";
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm" data-testid="milestone-progress">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-text-secondary">Current Phase</div>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-dark">{milestone.phase}</span>
+        </div>
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-2">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${milestone.progress}%` }} />
+        </div>
+        <div className="text-xs text-text-secondary flex items-center gap-1">
+          <Target className="h-3 w-3" />
+          Next milestone: {milestone.nextMilestone}
+        </div>
+      </div>
 
-            return (
-              <div
-                key={task.id}
-                className={cn(
-                  "relative flex items-start gap-4 py-3 pl-2 cursor-pointer hover:bg-gray-50 rounded-lg",
-                )}
-                onClick={() => onPreviewTask(task.id)}
-                data-testid={`roadmap-step-${task.id}`}
-              >
-                <div className={cn(
-                  "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2",
-                  isCompleted ? "bg-green-100 border-green-400 text-green-600" : "",
-                  isUnlocked ? "bg-primary/10 border-primary text-primary-dark ring-2 ring-primary/20" : "",
-                  isLocked ? "bg-gray-100 border-gray-300 text-gray-400" : "",
-                )}>
-                  {isCompleted ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : isUnlocked ? (
-                    <span className="text-sm font-bold">{idx + 1}</span>
-                  ) : (
-                    <Lock className="h-4 w-4" />
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm" data-testid="roadmap-timeline">
+        <div className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-4">Your Journey</div>
+        <div className="overflow-x-auto pb-4">
+          <div className="flex items-start gap-0 min-w-max px-2">
+            {roadmap.tasks.map((task: Task, idx: number) => {
+              const isCompleted = task.status === "completed";
+              const isUnlocked = task.status === "unlocked";
+              const isLocked = task.status === "locked";
+              const isCurrent = idx === currentTaskIndex;
+
+              return (
+                <React.Fragment key={task.id}>
+                  {idx > 0 && (
+                    <div className={cn(
+                      "h-0.5 w-10 mt-6 flex-shrink-0",
+                      roadmap.tasks[idx - 1].status === "completed" ? "bg-green-400" : "bg-gray-200"
+                    )} />
                   )}
-                </div>
-                <div className="flex-1 min-w-0 pt-1">
-                  <div className={cn(
-                    "text-sm font-semibold",
-                    isCompleted ? "text-green-700" : isUnlocked ? "text-text-primary" : "text-text-secondary",
-                  )}>
-                    {task.title}
-                  </div>
-                  <div className={cn("text-xs mt-0.5", isLocked ? "text-gray-400" : "text-text-secondary")}>
-                    {task.objective.length > 100 ? task.objective.slice(0, 100) + "..." : task.objective}
-                  </div>
-                  {isCompleted && task.completionEvidence && (
-                    <div className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                      <Check className="h-3 w-3" /> Completed
+                  <div
+                    className="flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 group"
+                    onClick={() => onPreviewTask(task.id)}
+                    data-testid={`roadmap-node-${task.id}`}
+                  >
+                    <div className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all",
+                      isCompleted ? "bg-green-100 border-green-400 text-green-600" : "",
+                      isUnlocked && isCurrent ? "bg-primary/10 border-primary text-primary-dark ring-4 ring-primary/10 scale-110" : "",
+                      isUnlocked && !isCurrent ? "bg-primary/10 border-primary text-primary-dark" : "",
+                      isLocked ? "bg-gray-100 border-gray-300 text-gray-400" : "",
+                    )}>
+                      {isCompleted ? (
+                        <CheckCircle className="h-5 w-5" />
+                      ) : isUnlocked ? (
+                        <span className="text-sm font-bold">{idx + 1}</span>
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
                     </div>
-                  )}
-                  <div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                    <Eye className="h-3 w-3" /> Click to preview
+                    <div className={cn(
+                      "text-xs text-center max-w-[90px] leading-tight group-hover:text-primary-dark transition-colors",
+                      isCompleted ? "text-green-700 font-medium" : "",
+                      isUnlocked ? "text-text-primary font-semibold" : "",
+                      isLocked ? "text-text-secondary" : "",
+                    )}>
+                      {task.title.length > 35 ? task.title.slice(0, 35) + "…" : task.title}
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {currentTaskIndex >= 0 && (
+        <div className="rounded-xl border border-primary/20 bg-white p-5 shadow-sm" data-testid="current-step-details">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary-dark text-sm font-bold">
+              {currentTaskIndex + 1}
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-primary-dark">Current Step</div>
+              <div className="text-sm font-semibold text-text-primary">{roadmap.tasks[currentTaskIndex].title}</div>
+            </div>
+          </div>
+          <div className="space-y-3 pl-10">
+            <div>
+              <div className="text-xs font-semibold text-text-secondary mb-0.5">Objective</div>
+              <div className="text-sm text-text-primary">{roadmap.tasks[currentTaskIndex].objective}</div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-text-secondary mb-0.5">Why This Matters</div>
+              <div className="text-sm text-text-secondary">{roadmap.tasks[currentTaskIndex].whyItMatters}</div>
+            </div>
+            {roadmap.tasks[currentTaskIndex].subtasks.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-text-secondary mb-1">Upcoming Actions</div>
+                <ul className="space-y-1">
+                  {roadmap.tasks[currentTaskIndex].subtasks.slice(0, 3).map((st: any) => (
+                    <li key={st.id} className="flex items-start gap-2 text-xs text-text-secondary">
+                      <div className="mt-0.5 h-3 w-3 rounded-sm border border-gray-300 shrink-0" />
+                      {st.label}
+                    </li>
+                  ))}
+                  {roadmap.tasks[currentTaskIndex].subtasks.length > 3 && (
+                    <li className="text-xs text-text-secondary pl-5">
+                      +{roadmap.tasks[currentTaskIndex].subtasks.length - 3} more steps
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+            <div className="text-xs text-text-secondary bg-gray-50 rounded-lg p-2 border border-gray-100">
+              Go to the <strong>Tasks tab</strong> to work on this step
+            </div>
+          </div>
+        </div>
+      )}
+
+      {completedCount > 0 && (
+        <div className="text-xs text-text-secondary flex items-center gap-1" data-testid="text-completed-count">
+          <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+          {completedCount} step{completedCount !== 1 ? "s" : ""} completed
+        </div>
+      )}
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm" data-testid="section-circumstances">
         <div className="flex items-center gap-2 text-sm font-semibold">
@@ -523,10 +1046,18 @@ function RoadmapTab({
           onChange={(e) => setCircumstanceText(e.target.value)}
           data-testid="textarea-circumstances"
         />
-        <div className="mt-2 flex justify-end">
+        <div className="mt-2 flex items-center justify-between">
+          {submitted && (
+            <div className="flex items-center gap-1.5 text-xs text-green-600" data-testid="text-circumstances-submitted">
+              <CheckCircle className="h-3.5 w-3.5" />
+              Roadmap updated based on your input
+            </div>
+          )}
+          {!submitted && <div />}
           <Button
             className="rounded-full bg-primary px-6 text-sm"
-            onClick={handleSaveCircumstances}
+            onClick={handleSubmitCircumstances}
+            disabled={!circumstanceText.trim()}
             data-testid="button-save-circumstances"
           >
             Update Roadmap
@@ -608,287 +1139,6 @@ function TaskPreviewModal({ task, onClose }: { task: Task; onClose: () => void }
             <div className="text-xs text-primary-dark">This task is currently active. Go to the Tasks tab to work on it.</div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function TaskModal({
-  task,
-  onClose,
-  onComplete,
-  onToggleSubtask,
-  studentProfile,
-}: {
-  task: Task;
-  onClose: () => void;
-  onComplete: (taskId: string, evidence: string) => void;
-  onToggleSubtask: (subtaskId: string) => void;
-  studentProfile: StudentProfile;
-}) {
-  const [evidenceValue, setEvidenceValue] = React.useState("");
-  const [gateError, setGateError] = React.useState("");
-  const [templateText, setTemplateText] = React.useState("");
-  const [templateConfirmed, setTemplateConfirmed] = React.useState(false);
-  const [templateCopied, setTemplateCopied] = React.useState(false);
-  const [showInternational, setShowInternational] = React.useState(false);
-  const [internationalConcern, setInternationalConcern] = React.useState(task.internationalConcern || "");
-
-  const isCompleted = task.status === "completed";
-  const subtasksDone = task.subtasks.filter((s) => s.completed).length;
-  const subtasksTotal = task.subtasks.length;
-  const subtaskPct = subtasksTotal > 0 ? Math.round((subtasksDone / subtasksTotal) * 100) : 0;
-  const allSubtasksDone = subtasksDone === subtasksTotal;
-
-  React.useEffect(() => {
-    if (task.aiTemplate && !templateText) {
-      setTemplateText(getTemplateText(task.aiTemplate.templateId, studentProfile));
-    }
-  }, [task.aiTemplate, studentProfile]);
-
-  const handleSubmitEvidence = () => {
-    if (!allSubtasksDone && !isCompleted) {
-      setGateError("Please complete all subtasks before finishing this task.");
-      return;
-    }
-    if (!evidenceValue.trim()) {
-      setGateError("Please provide the required input before completing this task.");
-      return;
-    }
-    if (task.completionGate.type === "number" && isNaN(Number(evidenceValue))) {
-      setGateError("Please enter a valid number.");
-      return;
-    }
-    setGateError("");
-    onComplete(task.id, evidenceValue.trim());
-  };
-
-  const handleConfirmGate = () => {
-    if (!allSubtasksDone && !isCompleted) {
-      setGateError("Please complete all subtasks before finishing this task.");
-      return;
-    }
-    setGateError("");
-    onComplete(task.id, "confirmed");
-  };
-
-  const handleCopyTemplate = () => {
-    navigator.clipboard.writeText(templateText);
-    setTemplateCopied(true);
-    setTimeout(() => setTemplateCopied(false), 2000);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose} data-testid="modal-task">
-      <div
-        className="relative mx-4 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button onClick={onClose} className="absolute right-4 top-4 rounded-full p-1.5 text-text-secondary hover:bg-gray-100" data-testid="button-close-task">
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="text-lg font-semibold text-text-primary pr-8">{task.title}</div>
-
-        <div className="mt-4 space-y-4">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 mb-1">Objective</div>
-            <div className="text-sm text-text-primary">{task.objective}</div>
-          </div>
-
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 mb-1">Why This Matters</div>
-            <div className="text-sm text-text-secondary">{task.whyItMatters}</div>
-          </div>
-
-          {task.internationalConsiderations && (
-            <div className="rounded-lg border border-blue-100 overflow-hidden">
-              <button
-                className="w-full flex items-center justify-between p-3 bg-blue-50 text-left"
-                onClick={() => setShowInternational(!showInternational)}
-                data-testid="button-toggle-international"
-              >
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700">
-                  <Globe className="h-3.5 w-3.5" />
-                  International Considerations
-                </div>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-blue-600 transition-transform", showInternational ? "rotate-180" : "")} />
-              </button>
-              {showInternational && (
-                <div className="p-3 bg-blue-50/50 space-y-2">
-                  <div className="text-xs text-blue-800">{task.internationalConsiderations}</div>
-                  <textarea
-                    className="w-full min-h-[50px] rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs outline-none focus:border-blue-400"
-                    placeholder="Have a specific concern? Type it here..."
-                    value={internationalConcern}
-                    onChange={(e) => setInternationalConcern(e.target.value)}
-                    data-testid="textarea-international-concern"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {subtasksTotal > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">
-                  Steps ({subtasksDone}/{subtasksTotal})
-                </div>
-                <div className="text-xs text-text-secondary">{subtaskPct}%</div>
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-3">
-                <div className={cn("h-full rounded-full", isCompleted ? "bg-green-500" : "bg-primary")} style={{ width: `${subtaskPct}%` }} />
-              </div>
-              <ul className="space-y-1.5">
-                {task.subtasks.map((st) => (
-                  <li
-                    key={st.id}
-                    className={cn(
-                      "flex items-start gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors",
-                      !isCompleted ? "cursor-pointer hover:bg-gray-50" : ""
-                    )}
-                    onClick={() => { if (!isCompleted) onToggleSubtask(st.id); }}
-                    data-testid={`subtask-${st.id}`}
-                  >
-                    <div className={cn(
-                      "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                      st.completed ? "bg-primary border-primary text-white" : "border-gray-300 bg-white"
-                    )}>
-                      {st.completed && <Check className="h-3 w-3" />}
-                    </div>
-                    <span className={cn("text-sm", st.completed ? "line-through text-text-secondary" : "text-text-primary")}>{st.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {task.aiTemplate && (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3" data-testid="modal-ai-template">
-              <div className="flex items-center gap-2 text-xs font-bold text-primary-dark">
-                <Sparkles className="h-3.5 w-3.5" />
-                AI-Generated Template: {task.aiTemplate.label}
-              </div>
-              <textarea
-                className="w-full min-h-[120px] rounded-lg border border-primary/20 bg-white px-3 py-2 text-sm whitespace-pre-wrap outline-none focus:border-primary"
-                value={templateText}
-                onChange={(e) => setTemplateText(e.target.value)}
-                data-testid="textarea-ai-template"
-              />
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  className="rounded-full text-xs h-8 px-3 gap-1"
-                  onClick={handleCopyTemplate}
-                  data-testid="button-copy-template"
-                >
-                  {templateCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {templateCopied ? "Copied" : "Copy"}
-                </Button>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={templateConfirmed}
-                    onChange={(e) => setTemplateConfirmed(e.target.checked)}
-                    className="rounded accent-primary"
-                    data-testid="checkbox-template-confirm"
-                  />
-                  <span className="text-text-primary">{task.aiTemplate.confirmationLabel}</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {task.resources.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70 flex items-center gap-1">
-                <ExternalLink className="h-3.5 w-3.5" />
-                Resources
-              </div>
-              <ul className="space-y-2">
-                {task.resources.map((resource, idx) => (
-                  <li key={idx}>
-                    <a
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary underline underline-offset-2 hover:text-primary-dark"
-                      data-testid={`link-resource-${idx}`}
-                    >
-                      {resource.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {isCompleted && task.completionEvidence && (
-            <div className="rounded-lg bg-green-50 border border-green-100 p-4" data-testid="modal-evidence">
-              <div className="text-xs font-bold uppercase tracking-wider text-green-700 mb-1">Your Submission</div>
-              <div className="text-sm text-green-900 whitespace-pre-wrap">{task.completionEvidence}</div>
-            </div>
-          )}
-
-          {!isCompleted && (
-            <div className="pt-3 space-y-3 border-t border-border" data-testid="modal-gate">
-              <div className="text-xs font-bold uppercase tracking-wider text-text-secondary/70">Complete This Task</div>
-
-              {!allSubtasksDone && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">
-                  Complete all steps above before you can finish this task.
-                </div>
-              )}
-
-              {task.completionGate.type === "confirm" ? (
-                <div className="space-y-2">
-                  <div className="text-sm text-text-primary">{task.completionGate.prompt}</div>
-                  {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
-                  <Button
-                    className="w-full rounded-full bg-primary font-medium hover:brightness-95"
-                    onClick={handleConfirmGate}
-                    disabled={!allSubtasksDone}
-                    data-testid="button-confirm-task"
-                  >
-                    Yes, I confirm
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary block">{task.completionGate.prompt}</label>
-                  {task.completionGate.type === "text" ? (
-                    <textarea
-                      className="w-full min-h-[80px] rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      placeholder={task.completionGate.placeholder || ""}
-                      value={evidenceValue}
-                      onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
-                      data-testid="input-evidence"
-                    />
-                  ) : (
-                    <input
-                      type="number"
-                      className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      placeholder={task.completionGate.placeholder || ""}
-                      value={evidenceValue}
-                      onChange={(e) => { setEvidenceValue(e.target.value); setGateError(""); }}
-                      data-testid="input-evidence"
-                    />
-                  )}
-                  {gateError && <div className="text-xs text-red-600" data-testid="error-gate">{gateError}</div>}
-                  <Button
-                    className="w-full rounded-full bg-primary font-medium hover:brightness-95"
-                    onClick={handleSubmitEvidence}
-                    disabled={!allSubtasksDone}
-                    data-testid="button-complete-task"
-                  >
-                    Submit & Complete Task
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

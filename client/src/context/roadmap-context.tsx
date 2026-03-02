@@ -1257,6 +1257,42 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const checkMilestoneUnlocks = (roadmap: Roadmap): Task[] => {
+    const contactCount = roadmap.contacts.length;
+    const callCount = roadmap.contacts.filter((c) =>
+      c.status === "call_completed" || c.status === "referral_requested"
+    ).length;
+    const applicationCount = roadmap.savedCompanies.filter((c) =>
+      ["applied", "interviewing", "offer"].includes(c.status)
+    ).length;
+    const interviewCount = roadmap.savedCompanies.filter((c) => c.status === "interviewing").length;
+
+    let tasksChanged = false;
+    const updatedTasks = roadmap.tasks.map((task, idx) => {
+      if (task.status !== "locked") return task;
+      const prevCompleted = idx === 0 || roadmap.tasks[idx - 1].status === "completed";
+      if (prevCompleted) return task;
+
+      const titleLower = task.title.toLowerCase();
+      const objLower = task.objective.toLowerCase();
+      const combined = titleLower + " " + objLower;
+
+      let shouldUnlock = false;
+      if (/outreach|cold|message|linkedin/i.test(combined) && contactCount >= 5) shouldUnlock = true;
+      if (/informational|interview|call/i.test(combined) && callCount >= 2) shouldUnlock = true;
+      if (/referral|refer/i.test(combined) && callCount >= 2 && contactCount >= 5) shouldUnlock = true;
+      if (/apply|application/i.test(combined) && applicationCount >= 1) shouldUnlock = true;
+
+      if (shouldUnlock) {
+        tasksChanged = true;
+        return { ...task, status: "unlocked" as TaskStatus };
+      }
+      return task;
+    });
+
+    return tasksChanged ? updatedTasks : roadmap.tasks;
+  };
+
   const addContact = (contact: Omit<Contact, "id">) => {
     setRoadmaps((prev) =>
       prev.map((roadmap) => {
@@ -1265,7 +1301,9 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
           ...contact,
           id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         };
-        return { ...roadmap, contacts: [...roadmap.contacts, newContact] };
+        const updated = { ...roadmap, contacts: [...roadmap.contacts, newContact] };
+        updated.tasks = checkMilestoneUnlocks(updated);
+        return updated;
       })
     );
   };
@@ -1274,12 +1312,14 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     setRoadmaps((prev) =>
       prev.map((roadmap) => {
         if (roadmap.id !== currentRoadmapId) return roadmap;
-        return {
+        const updated = {
           ...roadmap,
           contacts: roadmap.contacts.map((c) =>
             c.id === contactId ? { ...c, ...updates } : c
           ),
         };
+        updated.tasks = checkMilestoneUnlocks(updated);
+        return updated;
       })
     );
   };
@@ -1305,7 +1345,9 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
           id: `saved-co-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
           savedAt: new Date().toISOString(),
         };
-        return { ...roadmap, savedCompanies: [...roadmap.savedCompanies, newCompany] };
+        const updated = { ...roadmap, savedCompanies: [...roadmap.savedCompanies, newCompany] };
+        updated.tasks = checkMilestoneUnlocks(updated);
+        return updated;
       })
     );
   };
@@ -1314,12 +1356,14 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     setRoadmaps((prev) =>
       prev.map((roadmap) => {
         if (roadmap.id !== currentRoadmapId) return roadmap;
-        return {
+        const updated = {
           ...roadmap,
           savedCompanies: roadmap.savedCompanies.map((c) =>
             c.id === companyId ? { ...c, ...updates } : c
           ),
         };
+        updated.tasks = checkMilestoneUnlocks(updated);
+        return updated;
       })
     );
   };
@@ -1340,7 +1384,41 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     setRoadmaps((prev) =>
       prev.map((roadmap) => {
         if (roadmap.id !== currentRoadmapId) return roadmap;
-        return { ...roadmap, circumstanceUpdate: text };
+
+        const lower = text.toLowerCase();
+        let adaptiveMessage = "";
+
+        if (lower.includes("interview") && !lower.includes("rejected")) {
+          adaptiveMessage = "Interview detected — adjusting your timeline and prioritizing preparation tasks. Focus on company research and behavioral prep.";
+        } else if (lower.includes("offer")) {
+          adaptiveMessage = "Congratulations on the offer! Your roadmap has been updated. Consider continuing networking to strengthen your professional foundation.";
+        } else if (lower.includes("rejected") || lower.includes("rejection")) {
+          adaptiveMessage = "Rejection is part of the process — every successful professional has faced it. Your roadmap has been adjusted to broaden your approach and increase outreach volume.";
+        } else if (lower.includes("visa") || lower.includes("h-1b") || lower.includes("h1b") || lower.includes("opt") || lower.includes("cpt")) {
+          adaptiveMessage = "Visa situation noted. Updating your targets to focus on companies with strong sponsorship track records. Check the Companies tab for updated recommendations.";
+        } else if (lower.includes("behind") || lower.includes("slow") || lower.includes("delayed") || lower.includes("busy")) {
+          adaptiveMessage = "No worries — consistency matters more than speed. Your timeline has been adjusted. Focus on completing one task at a time.";
+        } else if (lower.includes("referral")) {
+          adaptiveMessage = "A referral is a major milestone. Your roadmap has been updated to help you capitalize on this connection with proper follow-up.";
+        } else if (lower.includes("no response") || lower.includes("ghosted") || lower.includes("didn't hear")) {
+          adaptiveMessage = "Not hearing back is completely normal. Most professionals need a follow-up. Your tasks have been adjusted to include follow-up strategies.";
+        } else {
+          adaptiveMessage = "Got it — your roadmap trajectory has been updated based on your input. Keep moving forward one step at a time.";
+        }
+
+        const newCheckIn: CoachCheckIn = {
+          id: Date.now().toString(),
+          content: text,
+          coachResponse: adaptiveMessage,
+          createdAt: new Date().toISOString(),
+          adaptiveAction: adaptiveMessage,
+        };
+
+        return {
+          ...roadmap,
+          circumstanceUpdate: text,
+          checkIns: [newCheckIn, ...roadmap.checkIns],
+        };
       })
     );
   };

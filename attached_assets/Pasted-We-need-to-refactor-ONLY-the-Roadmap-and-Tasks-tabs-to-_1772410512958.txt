@@ -1,0 +1,299 @@
+We need to refactor ONLY the Roadmap and Tasks tabs to better reflect a daily-use coaching system.
+
+IMPORTANT CONSTRAINTS:
+
+Do NOT break Contacts tab.
+
+Do NOT break Companies tab.
+
+Do NOT break saved roadmap data.
+
+Roadmap and Tasks must READ from Contacts and Companies.
+
+This is a layout + logic refactor, not a full rewrite.
+
+HIGH-LEVEL GOAL
+
+Transform:
+
+Roadmap → strategic, horizontal, read-only progression
+
+Tasks → daily + weekly coaching modules that drive real action
+
+These two tabs must work together like:
+
+Roadmap = destination + path
+
+Tasks = today’s training
+
+PART 1 — ROADMAP TAB (STRATEGIC, HORIZONTAL)
+Layout Changes
+
+Change roadmap layout from vertical → horizontal (left to right)
+
+Each step is a node connected visually
+
+Future steps are locked but previewable
+
+No task completion happens in Roadmap tab
+
+Roadmap Content Rules
+
+Each roadmap step must include:
+
+Objective
+
+Why it matters
+
+Preview of upcoming skills / actions (read-only)
+
+STRICT RULE:
+❌ No vague career discovery tasks
+❌ No “figure out what you want”
+✅ Only networking, positioning, skill-building, and execution
+
+Roadmap Intelligence
+
+The Roadmap must observe:
+
+Contacts added
+
+Contact status changes
+
+Companies starred
+
+Applications logged
+
+Rejections / interviews logged
+
+Based on this data:
+
+Advance roadmap steps automatically
+
+Unlock next stages when milestones are reached
+
+Example:
+
+If 10 contacts added → advance networking phase
+
+If 2 calls completed → unlock referral phase
+
+If company applied → adjust roadmap timeline
+
+“Change in Circumstances” Fix
+
+At the bottom of the Roadmap tab:
+
+Textbox MUST submit
+
+On submit:
+
+Parse user input
+
+Update roadmap trajectory
+
+Add/remove future steps as needed
+
+NEVER reset completed progress
+
+Examples of inputs:
+
+“I got an interview”
+
+“Visa status changed”
+
+“I’m behind schedule”
+
+“I got rejected”
+
+Motivation Element
+
+At top of Roadmap tab:
+
+Display Estimated Time to Hire
+
+This dynamically updates based on:
+
+Task completion velocity
+
+Networking activity
+
+Interviews logged
+
+This is motivational, not guaranteed.
+
+PART 2 — TASKS TAB (EXECUTION ENGINE)
+
+The Tasks tab must be completely restructured.
+
+Tasks Tab Layout
+
+ONLY show two cards, side by side:
+
+Left: Daily Task
+
+Right: Weekly Task
+
+No long vertical task list.
+No roadmap duplication.
+
+Task Refresh Rules
+
+Daily Task refreshes at 12:00 AM
+
+Weekly Task refreshes Monday at 12:00 AM
+
+Tasks are pulled directly from the current Roadmap stage
+
+Task Philosophy
+
+Tasks are coaching modules, not checklists.
+
+Think:
+
+Duolingo-style progression
+
+Small daily wins
+
+One deeper weekly effort
+
+Task Interaction Flow
+
+When user clicks a task card:
+
+Navigate to a dedicated task screen
+
+Guide the user through 3–4 steps max
+
+Each step must require real input or action
+
+Task Step Requirements
+
+Each task includes:
+
+Objective
+
+Why this matters
+
+Optional International Consideration (collapsible)
+
+Step-by-step guidance (extremely detailed, beginner-friendly)
+
+AI assistance if relevant
+
+Completion validation
+
+VALID TASK COMPLETION (CRITICAL)
+
+A task CANNOT be completed by typing random text.
+
+Completion must involve ONE of:
+
+Uploading a file (resume, notes)
+
+Answering guided questions (quiz-style, Duolingo-like)
+
+Adding/updating Contacts
+
+Adding/updating Companies
+
+Logging outreach or follow-ups
+
+Examples:
+
+Networking Daily Task
+
+Add 2 new contacts to Contacts tab
+
+OR update status of existing contacts
+
+OR log a follow-up message
+
+Weekly Networking Task
+
+Identify 5 alumni via LinkedIn
+
+Add them to Contacts tab
+
+Draft outreach message (AI assists)
+
+Confirm message is sent
+
+Company Research Task
+
+Star 3 companies
+
+Add status (“Considering”)
+
+Note why each is relevant
+
+Learning Task
+
+Watch curated YouTube video
+
+Answer 2–3 comprehension questions
+
+Reflect briefly (validated length)
+
+AI REQUIREMENTS
+
+If a task offers AI help:
+
+It MUST generate content when prompted
+
+LinkedIn message drafting must actually return a draft
+
+All links must be valid
+
+Prefer YouTube + credible career sources
+
+PART 3 — TASK ↔ ROADMAP CONNECTION
+
+When a task is completed:
+
+Update roadmap progress
+
+Update estimated time to hire
+
+Potentially unlock next roadmap node
+
+Tasks should NEVER feel disconnected from roadmap.
+
+PART 4 — REMOVE CHANGE-IN-CIRCUMSTANCE FROM TASKS TAB
+
+Tasks tab should NOT have a “change in circumstance” box
+
+That belongs ONLY in the Roadmap tab
+
+Tasks = execution
+Roadmap = strategy
+
+PART 5 — INTERNATIONAL SENSITIVITY
+
+International guidance must be optional
+
+Contextual to the task
+
+Never generic or patronizing
+
+Allow user to input specific concerns
+
+END RESULT
+
+After this update:
+
+Roadmap = horizontal, strategic, adaptive
+
+Tasks = daily + weekly coaching modules
+
+No fake progress
+
+No generic advice
+
+Strong integration with Contacts and Companies
+
+Product feels like a daily training system, not a planner
+
+Do NOT overengineer.
+Do NOT add new tabs.
+Ship this cleanly.

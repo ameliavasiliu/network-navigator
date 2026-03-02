@@ -4,8 +4,8 @@ OpenDoorAI is a career preparation platform designed for international MBA stude
 
 1. **Dashboard** — A home screen with KPI cards (mock interviews, active streak), document upload surfaces (resume/cover letter), and quick access to recent roadmaps.
 2. **Network Navigator** — A 4-tab interconnected coaching system:
-   - **Tasks Tab** — Active task cards (daily/weekly), full task list with subtask tracking, completion gates, AI templates, and coach check-in system
-   - **Roadmap Tab** — Strategic read-only view with visual journey timeline, estimated time to hire, task previews, and "Change in Circumstances" input
+   - **Tasks Tab** — Two-card coaching layout (daily + weekly task), guided step-by-step execution view with validated completion (networking tasks require contacts, company tasks require saved companies, AI templates must be confirmed), activity snapshot, and coach check-in system
+   - **Roadmap Tab** — Horizontal node-based strategic view with milestone tracking, estimated time to hire (dynamically adjusted by contacts/companies/interviews), task preview modals (read-only), milestone-based auto-unlocking, and functional "Change in Circumstances" that parses input and creates adaptive check-ins
    - **Contacts Tab** — Full relationship tracker with search, filters (status/affiliation), follow-up suggestions, and extended fields (affiliation, school, email, phone)
    - **Companies Tab** — Recommended companies with star/save, saved companies with status tracking (considering/applied/interviewing/rejected/offer), manual add, and refresh countdown
 3. **Mock Interview Tool** — A placeholder/MVP screen for future interview practice functionality.
