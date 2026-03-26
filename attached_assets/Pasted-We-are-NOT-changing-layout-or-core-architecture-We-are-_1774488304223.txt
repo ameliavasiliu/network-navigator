@@ -1,0 +1,203 @@
+We are NOT changing layout or core architecture.
+
+We are improving:
+
+Data persistence
+Task usability
+Navigation between tabs
+Coaching depth (networking specifically)
+
+Do NOT modify:
+
+Tab structure
+Roadmap structure
+Task structure
+Contacts or Companies schema
+PART 1 — FORM INPUT PERSISTENCE (CRITICAL FIX)
+Problem:
+
+When users fill out the roadmap intake form and click back, their inputs are lost.
+
+Solution:
+
+Implement real-time autosave for all intake fields.
+
+Requirements:
+Save user inputs:
+On change (as user types/selects)
+OR on blur (when user leaves field)
+Store in:
+Local state + localStorage (or session store)
+When user navigates backward:
+Previously entered values must remain populated
+When user refreshes page:
+Inputs should persist (until roadmap is generated)
+Only clear inputs after:
+Successful roadmap generation
+PART 2 — TASK PROGRESS PERSISTENCE
+Problem:
+
+Task progress is not reliably saved.
+
+Solution:
+Requirements:
+Save progress at EACH step of a task:
+Current step index
+Completed steps
+User inputs (answers, uploads, selections)
+If user exits task and returns:
+Resume exactly where they left off
+If page refreshes:
+Progress must persist
+Only mark task complete when:
+All required validations are satisfied
+PART 3 — TASK → CONTACTS NAVIGATION FIX
+Problem:
+
+Tasks tell users to add contacts, but there is no easy way to navigate there.
+
+Solution:
+Add “Smart Action Buttons” inside task screens
+
+If task involves networking:
+
+Add button:
+“Go to Contacts Tab”
+Behavior:
+Takes user directly to Contacts tab
+Optionally opens “Add Contact” modal automatically
+When user returns to task:
+Task should detect new contacts added
+Progress updates automatically
+
+If task involves companies:
+
+Add button:
+“Go to Companies Tab”
+
+Same behavior applies.
+
+PART 4 — NETWORKING COACHING UPGRADE
+
+Enhance coaching content inside tasks.
+
+ADD: COLD OUTREACH INSTRUCTION
+
+In networking-related tasks, include:
+
+Concept:
+It is normal to cold message professionals
+Most people are willing to help students
+Goal = conversation, NOT job
+Provide Template:
+
+LinkedIn Outreach Message Example:
+
+“Hi [Name], I’m currently a student at [University] exploring careers in [industry/role]. I came across your profile and saw your experience at [Company], which I found really interesting.
+
+I’d love to learn more about your career path and any advice you might have for someone trying to break into this space. If you had 15–20 minutes for a quick chat, I’d really appreciate it.
+
+Thanks so much,
+[Your Name]”
+
+Add Guidance:
+Keep it short
+Be specific
+Do NOT ask for a job
+Ask for advice, not opportunity
+ADD: FOLLOW-UP COACHING
+
+Include:
+
+Follow up 24 hours after conversation
+Follow up again in ~2–3 weeks
+Keep relationship warm over time
+ADD: CONVERSATION STRUCTURE
+
+Teach users what to do on calls:
+
+Start with light rapport
+Ask:
+How they got started
+What they actually do day-to-day
+What they like/dislike
+Advice for breaking in
+End with:
+“Is there anyone else you’d recommend I speak with?”
+ADD: PERSISTENCE MINDSET
+
+Explicitly coach:
+
+Networking is a numbers game
+Not everyone responds
+That’s normal
+Consistency wins
+PART 5 — COMPANY DISCOVERY UPGRADE
+Problem:
+
+Students don’t know where to find companies beyond obvious ones.
+
+Solution:
+
+Add coaching + optional resources:
+
+METHOD 1: LINKEDIN + ALUMNI (already exists, reinforce)
+METHOD 2: INDUSTRY CONFERENCES (NEW)
+
+Teach users:
+
+Search:
+“[industry] conference 2026”
+Go to conference website
+Find:
+“Sponsors” or “Partners” section
+
+These companies are:
+
+Actively investing in the space
+Often hiring
+Often overlooked
+OPTIONAL (if feasible):
+
+Provide example links dynamically:
+
+Marketing conferences
+Tech conferences
+Finance conferences
+
+If not feasible:
+
+Just explain the method clearly
+HOW TO USE THIS:
+
+After identifying a company:
+
+Search company on LinkedIn
+Find alumni working there
+Reach out using shared school connection
+Request conversation
+Build relationship → ask for referral
+PART 6 — TASK INTEGRATION
+
+Ensure tasks now:
+
+Reference:
+Contacts tab
+Companies tab
+Encourage:
+Adding companies from conferences
+Connecting with alumni at those companies
+END RESULT
+
+After this update:
+
+Users don’t lose progress (forms + tasks)
+Tasks feel connected to the platform
+Navigation is intuitive
+Networking coaching is practical and actionable
+Students learn WHERE to find opportunities, not just WHAT to do
+
+Do NOT change layout.
+Focus on reliability + usability + coaching depth.
+
+END PROMPT.

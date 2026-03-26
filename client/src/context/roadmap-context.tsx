@@ -1660,6 +1660,7 @@ const RoadmapContext = createContext<RoadmapContextType | null>(null);
 
 const STORAGE_KEY = "network-navigator-roadmaps";
 const CURRENT_ROADMAP_KEY = "network-navigator-current";
+const WIZARD_DRAFT_KEY = "network-navigator-wizard-draft";
 
 export function RoadmapProvider({ children }: { children: ReactNode }) {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
@@ -1705,6 +1706,15 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     if (storedCurrent) {
       setCurrentRoadmapId(storedCurrent);
     }
+    const storedDraft = localStorage.getItem(WIZARD_DRAFT_KEY);
+    if (storedDraft) {
+      try {
+        const draft = JSON.parse(storedDraft);
+        setWizardFormData((prev) => ({ ...prev, ...draft }));
+      } catch (e) {
+        // ignore corrupt draft
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -1716,6 +1726,13 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(CURRENT_ROADMAP_KEY, currentRoadmapId);
     }
   }, [currentRoadmapId]);
+
+  useEffect(() => {
+    const isDefault = JSON.stringify(wizardFormData) === JSON.stringify(defaultWizardFormData);
+    if (!isDefault) {
+      localStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify(wizardFormData));
+    }
+  }, [wizardFormData]);
 
   const currentRoadmap = roadmaps.find((r) => r.id === currentRoadmapId) || null;
 
@@ -1780,6 +1797,7 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     setRoadmaps((prev) => [newRoadmap, ...prev]);
     setCurrentRoadmapId(newRoadmap.id);
     setWizardFormData(defaultWizardFormData);
+    localStorage.removeItem(WIZARD_DRAFT_KEY);
 
     return newRoadmap.id;
   };

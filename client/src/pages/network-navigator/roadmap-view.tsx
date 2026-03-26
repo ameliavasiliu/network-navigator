@@ -208,6 +208,11 @@ export default function RoadmapView() {
   const completedCount = roadmap.tasks.filter((t) => t.status === "completed").length;
   const totalTasks = roadmap.tasks.length;
 
+  const handleNavigateToTab = (tab: "tasks" | "roadmap" | "contacts" | "companies") => {
+    setExecutingTaskId(null);
+    setActiveTab(tab);
+  };
+
   if (executingTask) {
     return (
       <div className="space-y-6" data-testid="screen-roadmap-view">
@@ -219,6 +224,7 @@ export default function RoadmapView() {
           studentProfile={getStudentProfile()}
           contacts={roadmap.contacts}
           savedCompanies={roadmap.savedCompanies}
+          onNavigateToTab={handleNavigateToTab}
         />
       </div>
     );
@@ -469,6 +475,8 @@ function TaskCard({
   );
 }
 
+const TASK_PROGRESS_PREFIX = "opendoor_task_progress_";
+
 function TaskExecutionView({
   task,
   onBack,
@@ -477,6 +485,7 @@ function TaskExecutionView({
   studentProfile,
   contacts,
   savedCompanies,
+  onNavigateToTab,
 }: {
   task: Task;
   onBack: () => void;
@@ -485,24 +494,45 @@ function TaskExecutionView({
   studentProfile: StudentProfile;
   contacts: Contact[];
   savedCompanies: SavedCompany[];
+  onNavigateToTab: (tab: "tasks" | "roadmap" | "contacts" | "companies") => void;
 }) {
   type Phase = "coaching" | "subtasks" | "quiz" | "completion";
   const phases: Phase[] = ["coaching", "subtasks"];
   if (task.practiceQuiz && task.practiceQuiz.length > 0) phases.push("quiz");
   phases.push("completion");
 
-  const [currentPhase, setCurrentPhase] = React.useState<Phase>("coaching");
-  const [subtaskPage, setSubtaskPage] = React.useState(0);
-  const [quizPage, setQuizPage] = React.useState(0);
-  const [selectedAnswers, setSelectedAnswers] = React.useState<Record<number, number>>({});
-  const [revealedAnswers, setRevealedAnswers] = React.useState<Record<number, boolean>>({});
-  const [evidenceValue, setEvidenceValue] = React.useState("");
+  const progressKey = TASK_PROGRESS_PREFIX + task.id;
+
+  const loadSavedProgress = (): Partial<{
+    currentPhase: Phase; subtaskPage: number; quizPage: number;
+    selectedAnswers: Record<number, number>; revealedAnswers: Record<number, boolean>;
+    evidenceValue: string; templateConfirmed: boolean; reflectionInputs: Record<number, string>;
+  }> => {
+    try {
+      const raw = localStorage.getItem(progressKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  };
+
+  const saved = loadSavedProgress();
+
+  const [currentPhase, setCurrentPhase] = React.useState<Phase>(saved.currentPhase || "coaching");
+  const [subtaskPage, setSubtaskPage] = React.useState(saved.subtaskPage || 0);
+  const [quizPage, setQuizPage] = React.useState(saved.quizPage || 0);
+  const [selectedAnswers, setSelectedAnswers] = React.useState<Record<number, number>>(saved.selectedAnswers || {});
+  const [revealedAnswers, setRevealedAnswers] = React.useState<Record<number, boolean>>(saved.revealedAnswers || {});
+  const [evidenceValue, setEvidenceValue] = React.useState(saved.evidenceValue || "");
   const [gateError, setGateError] = React.useState("");
   const [templateText, setTemplateText] = React.useState("");
-  const [templateConfirmed, setTemplateConfirmed] = React.useState(false);
+  const [templateConfirmed, setTemplateConfirmed] = React.useState(saved.templateConfirmed || false);
   const [templateCopied, setTemplateCopied] = React.useState(false);
   const [showInternational, setShowInternational] = React.useState(false);
-  const [reflectionInputs, setReflectionInputs] = React.useState<Record<number, string>>({});
+  const [reflectionInputs, setReflectionInputs] = React.useState<Record<number, string>>(saved.reflectionInputs || {});
+
+  React.useEffect(() => {
+    const progress = { currentPhase, subtaskPage, quizPage, selectedAnswers, revealedAnswers, evidenceValue, templateConfirmed, reflectionInputs };
+    localStorage.setItem(progressKey, JSON.stringify(progress));
+  }, [currentPhase, subtaskPage, quizPage, selectedAnswers, revealedAnswers, evidenceValue, templateConfirmed, reflectionInputs]);
 
   const isCompleted = task.status === "completed";
   const phaseIndex = phases.indexOf(currentPhase);
@@ -560,6 +590,7 @@ function TaskExecutionView({
     }
 
     if (task.completionGate.type === "confirm") {
+      localStorage.removeItem(progressKey);
       onComplete(task.id, "confirmed");
       return;
     }
@@ -574,6 +605,7 @@ function TaskExecutionView({
         setGateError("Please enter a number greater than 0.");
         return;
       }
+      localStorage.removeItem(progressKey);
       onComplete(task.id, evidenceValue.trim());
       return;
     }
@@ -589,6 +621,7 @@ function TaskExecutionView({
       return;
     }
 
+    localStorage.removeItem(progressKey);
     onComplete(task.id, trimmed);
   };
 
@@ -744,6 +777,106 @@ function TaskExecutionView({
               </div>
             )}
 
+            {isNetworkingTask && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 space-y-4" data-testid="networking-coaching-block">
+                <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Cold Outreach Guide
+                </div>
+
+                <div className="text-sm text-emerald-900 leading-relaxed">
+                  It is completely normal to reach out to professionals you've never met. Most people are genuinely willing to help students — especially alumni from their own school. Your goal is a <strong>conversation</strong>, not a job. One short message asking for 15–20 minutes of advice is all it takes to start.
+                </div>
+
+                <div className="rounded-lg bg-white border border-emerald-200 p-4 space-y-2">
+                  <div className="text-xs font-semibold text-emerald-700">LinkedIn Message Template</div>
+                  <div className="text-sm text-text-primary font-mono leading-relaxed bg-gray-50 rounded-lg p-3 border border-gray-100 whitespace-pre-line">{`Hi [Name], I'm currently a student at [University] exploring careers in [industry/role]. I came across your profile and saw your experience at [Company], which I found really interesting.
+
+I'd love to learn more about your career path and any advice you might have for someone trying to break into this space. If you had 15–20 minutes for a quick chat, I'd really appreciate it.
+
+Thanks so much,
+[Your Name]`}</div>
+                  <div className="text-xs text-emerald-700 space-y-1 pt-1">
+                    <div>• Keep it short — don't write a paragraph about yourself</div>
+                    <div>• Be specific — mention their company or something from their profile</div>
+                    <div>• Ask for advice, not a job or referral</div>
+                    <div>• Send Tuesday–Thursday, 9–11am their time zone for best response rates</div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white border border-emerald-200 p-4 space-y-2">
+                  <div className="text-xs font-semibold text-emerald-700">On the Call</div>
+                  <div className="text-xs text-emerald-900 space-y-1">
+                    <div>• Start light — ask how they got into their role</div>
+                    <div>• Ask what a typical day looks like and what they enjoy (or don't)</div>
+                    <div>• Ask what advice they'd give someone breaking into this space</div>
+                    <div>• End with: <em>"Is there anyone else you'd recommend I speak with?"</em></div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white border border-emerald-200 p-4 space-y-2">
+                  <div className="text-xs font-semibold text-emerald-700">Following Up</div>
+                  <div className="text-xs text-emerald-900 space-y-1">
+                    <div>• Send a thank-you within 24 hours — reference something they said</div>
+                    <div>• Follow up again in 2–3 weeks to keep the relationship warm</div>
+                    <div>• Not everyone responds — that is normal. Networking is a numbers game. Consistency wins.</div>
+                    <div>• If someone doesn't reply in 5 days, send one polite follow-up, then move on</div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm gap-2"
+                  onClick={() => onNavigateToTab("contacts")}
+                  data-testid="button-go-to-contacts"
+                >
+                  <Users className="h-4 w-4" />
+                  Go to Contacts Tab — Log Your Outreach
+                </Button>
+              </div>
+            )}
+
+            {isCompanyTask && (
+              <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-5 space-y-4" data-testid="company-discovery-block">
+                <div className="text-xs font-bold uppercase tracking-wider text-violet-700 flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Finding Companies Beyond the Obvious
+                </div>
+
+                <div className="text-sm text-violet-900 leading-relaxed">
+                  Most students target the same 10 well-known firms. The opportunity is in the companies <em>most people overlook</em> — mid-sized firms, boutiques, and fast-growing startups that are actively hiring but not on every student's radar.
+                </div>
+
+                <div className="rounded-lg bg-white border border-violet-200 p-4 space-y-2">
+                  <div className="text-xs font-semibold text-violet-700">Method: Industry Conferences</div>
+                  <div className="text-xs text-violet-900 space-y-1.5">
+                    <div>1. Search <strong>"[your industry] conference 2026"</strong> — e.g., "marketing conference 2026"</div>
+                    <div>2. Go to the conference website and find the <strong>Sponsors</strong> or <strong>Partners</strong> section</div>
+                    <div>3. These companies are actively investing in the space — and often hiring</div>
+                    <div>4. Search each company on LinkedIn, find alumni at your school working there</div>
+                    <div>5. Reach out using the shared school connection as your opener</div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white border border-violet-200 p-4 space-y-2">
+                  <div className="text-xs font-semibold text-violet-700">Method: LinkedIn Alumni Search</div>
+                  <div className="text-xs text-violet-900 space-y-1">
+                    <div>• Search your school name on LinkedIn → click "Alumni" → filter by industry or company</div>
+                    <div>• Every company where alumni work is a potential warm connection</div>
+                    <div>• A shared school is reason enough to reach out</div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm gap-2"
+                  onClick={() => onNavigateToTab("companies")}
+                  data-testid="button-go-to-companies"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Go to Companies Tab — Save Your Targets
+                </Button>
+              </div>
+            )}
+
             <div className="rounded-lg bg-gray-50 border border-gray-100 p-3 flex items-center gap-4 text-xs text-text-secondary" data-testid="activity-context">
               <span><strong className="text-text-primary">{contacts.length}</strong> contacts tracked</span>
               <span>·</span>
@@ -824,6 +957,30 @@ function TaskExecutionView({
                 <CheckCircle className="h-4 w-4" />
                 Step completed
               </div>
+            )}
+
+            {isNetworkingTask && (
+              <Button
+                variant="outline"
+                className="w-full rounded-full border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2 text-sm"
+                onClick={() => onNavigateToTab("contacts")}
+                data-testid="button-subtask-go-contacts"
+              >
+                <Users className="h-4 w-4" />
+                Go to Contacts Tab
+              </Button>
+            )}
+
+            {isCompanyTask && (
+              <Button
+                variant="outline"
+                className="w-full rounded-full border-violet-300 text-violet-700 hover:bg-violet-50 gap-2 text-sm"
+                onClick={() => onNavigateToTab("companies")}
+                data-testid="button-subtask-go-companies"
+              >
+                <Building2 className="h-4 w-4" />
+                Go to Companies Tab
+              </Button>
             )}
 
             <div className="flex items-center gap-1 pt-2">
