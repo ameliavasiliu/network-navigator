@@ -6,6 +6,8 @@ import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "@/components/app-shell";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import ContactsPage from "@/pages/contacts";
+import CompaniesPage from "@/pages/companies";
 import { NetworkNavigatorLanding, RoadmapView, Step1, Step2, Step3, Step4 } from "@/pages/network-navigator";
 import { RoadmapProvider } from "@/context/roadmap-context";
 
@@ -21,6 +23,8 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Navigate to="/" replace />} />
                 <Route path="/mock-interview" element={<Navigate to="/" replace />} />
+                <Route path="/contacts" element={<ContactsPage />} />
+                <Route path="/companies" element={<CompaniesPage />} />
                 <Route path="/network-navigator" element={<NetworkNavigatorLanding />} />
                 <Route path="/network-navigator/create/step-1" element={<Step1 />} />
                 <Route path="/network-navigator/create/step-2" element={<Step2 />} />

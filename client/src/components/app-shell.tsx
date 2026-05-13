@@ -1,12 +1,7 @@
 import * as React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutGrid, Network } from "lucide-react";
+import { LayoutGrid, Network, Users, Building2 } from "lucide-react";
 
-// AppShell is the persistent layout wrapper.
-// Layout + spacing intentionally mirror the style reference:
-// - Soft sidebar surface
-// - Mint active state
-// - Comfortable paddings and a clean main canvas
 export default function AppShell() {
   return (
     <div className="min-h-screen bg-bg-app text-text-primary" data-testid="screen-shell">
@@ -20,18 +15,10 @@ export default function AppShell() {
           </div>
 
           <nav className="space-y-1" data-testid="nav-main">
-            <ShellNavItem
-              to="/"
-              icon={<LayoutGrid className="h-4 w-4" />}
-              label="Dashboard"
-              testId="link-dashboard"
-            />
-            <ShellNavItem
-              to="/network-navigator"
-              icon={<Network className="h-4 w-4" />}
-              label="Network Navigator"
-              testId="link-network-navigator"
-            />
+            <ShellNavItem to="/" icon={<LayoutGrid className="h-4 w-4" />} label="Dashboard" testId="link-dashboard" />
+            <ShellNavItem to="/network-navigator" icon={<Network className="h-4 w-4" />} label="Network Navigator" testId="link-network-navigator" />
+            <ShellNavItem to="/contacts" icon={<Users className="h-4 w-4" />} label="Contacts" testId="link-contacts" />
+            <ShellNavItem to="/companies" icon={<Building2 className="h-4 w-4" />} label="Companies" testId="link-companies" />
           </nav>
         </aside>
 
@@ -59,20 +46,15 @@ function ShellNavItem({
       to={to}
       className={({ isActive }) =>
         [
-          "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium",
-          "transition-colors",
-          // Sidebar inactive style
+          "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
           !isActive ? "text-text-primary/85 hover:bg-black/5" : "",
-          // Active mint highlight (matches screenshot)
           isActive ? "bg-primary-muted text-text-primary" : "",
         ].join(" ")
       }
       data-testid={testId}
       end={to === "/"}
     >
-      <span className="text-text-primary/80" aria-hidden>
-        {icon}
-      </span>
+      <span className="text-text-primary/80" aria-hidden>{icon}</span>
       <span>{label}</span>
     </NavLink>
   );

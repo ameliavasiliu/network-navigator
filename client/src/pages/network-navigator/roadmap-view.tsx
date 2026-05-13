@@ -1568,6 +1568,8 @@ function TaskPreviewModal({ task, onClose }: { task: Task; onClose: () => void }
 }
 
 function HappyHatAvatar({ size = 40, wiggle = false }: { size?: number; wiggle?: boolean }) {
+  // American cowboy hat: cream crown, navy band with white stars, soft red brim accent.
+  // Friendly modern illustration style — not cartoonish, not corporate.
   return (
     <div
       className={cn("inline-flex items-center justify-center", wiggle && "animate-[wiggle_2.4s_ease-in-out_infinite]")}
@@ -1575,23 +1577,52 @@ function HappyHatAvatar({ size = 40, wiggle = false }: { size?: number; wiggle?:
       aria-hidden
     >
       <svg viewBox="0 0 64 64" width={size} height={size}>
-        {/* Hat brim */}
-        <ellipse cx="32" cy="40" rx="26" ry="6" fill="#8B5A2B" />
-        <ellipse cx="32" cy="39" rx="24" ry="4" fill="#A0703D" />
-        {/* Hat crown */}
-        <path d="M14 38 Q14 18 32 18 Q50 18 50 38 Q44 36 32 36 Q20 36 14 38 Z" fill="#8B5A2B" />
-        <path d="M16 36 Q16 22 32 22 Q48 22 48 36" fill="none" stroke="#6B3F1B" strokeWidth="1.2" />
-        {/* Crown band */}
-        <rect x="14" y="35" width="36" height="3" fill="#5C3318" rx="1" />
-        {/* Star pin */}
-        <path d="M44 36.5 l1.2 -1.5 l1.5 0.6 l-0.6 1.6 l1.6 0.7 l-1.6 0.7 l0.6 1.6 l-1.5 0.6 l-1.2 -1.5 l-1.2 1.5 l-1.5 -0.6 l0.6 -1.6 l-1.6 -0.7 l1.6 -0.7 l-0.6 -1.6 l1.5 -0.6 z" fill="#F5C24A" />
-        {/* Face */}
-        <circle cx="26" cy="46" r="1.4" fill="#222" />
-        <circle cx="38" cy="46" r="1.4" fill="#222" />
-        <path d="M26 50 Q32 54 38 50" fill="none" stroke="#222" strokeWidth="1.6" strokeLinecap="round" />
+        <defs>
+          <linearGradient id="hatCream" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#F5E9D0" />
+            <stop offset="100%" stopColor="#E5D2A8" />
+          </linearGradient>
+        </defs>
+        {/* Brim shadow + brim */}
+        <ellipse cx="32" cy="42" rx="27" ry="5.5" fill="#C75450" opacity="0.18" />
+        <ellipse cx="32" cy="41" rx="26" ry="5" fill="url(#hatCream)" stroke="#B8A06F" strokeWidth="0.6" />
+        {/* Crown */}
+        <path d="M15 39 Q15 19 32 19 Q49 19 49 39 Q43 37 32 37 Q21 37 15 39 Z" fill="url(#hatCream)" stroke="#B8A06F" strokeWidth="0.6" />
+        {/* Subtle pinch on top */}
+        <path d="M24 22 Q32 17 40 22" fill="none" stroke="#B8A06F" strokeWidth="0.8" opacity="0.7" />
+        {/* Navy band with white stars (American flag inspired) */}
+        <rect x="15" y="35.5" width="34" height="3.6" fill="#1F3A78" rx="0.6" />
+        {/* 3 small white stars on the band */}
+        <HatStar cx={22} cy={37.3} r={1} />
+        <HatStar cx={32} cy={37.3} r={1} />
+        <HatStar cx={42} cy={37.3} r={1} />
+        {/* Red stripe accent on brim front */}
+        <path d="M14 41.5 Q32 44.4 50 41.5" fill="none" stroke="#C75450" strokeWidth="1" strokeLinecap="round" opacity="0.85" />
+        {/* Friendly face — simple, warm, encouraging */}
+        <circle cx="26" cy="47" r="1.5" fill="#2A2A2A" />
+        <circle cx="38" cy="47" r="1.5" fill="#2A2A2A" />
+        {/* Tiny eye glints */}
+        <circle cx="26.5" cy="46.5" r="0.4" fill="#fff" />
+        <circle cx="38.5" cy="46.5" r="0.4" fill="#fff" />
+        {/* Warm smile */}
+        <path d="M25 50.5 Q32 55 39 50.5" fill="none" stroke="#2A2A2A" strokeWidth="1.6" strokeLinecap="round" />
+        {/* Subtle cheek blush */}
+        <circle cx="23" cy="51" r="1.2" fill="#E8A0A0" opacity="0.55" />
+        <circle cx="41" cy="51" r="1.2" fill="#E8A0A0" opacity="0.55" />
       </svg>
     </div>
   );
+}
+
+function HatStar({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  // Tiny 5-point star, white, used on the hat band.
+  const points: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const radius = i % 2 === 0 ? r : r * 0.45;
+    points.push(`${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`);
+  }
+  return <polygon points={points.join(" ")} fill="#FFFFFF" />;
 }
 
 function HappyHatCoach({
@@ -1614,11 +1645,39 @@ function HappyHatCoach({
   const completed = roadmap.tasks.filter((t: Task) => t.status === "completed").length;
 
   const encouragement = React.useMemo(() => {
-    if (contactCount === 0 && savedCount === 0) return "Howdy partner! Let's get the wheels turning — add your first contact or save a company today. Tiny steps add up fast.";
-    if (contactCount > 0 && savedCount === 0) return `Nice work — ${contactCount} contact${contactCount === 1 ? "" : "s"} in the pipeline. Want to lock in some target companies next? It'll sharpen your outreach.`;
-    if (savedCount > 0 && contactCount === 0) return `Great list of ${savedCount} compan${savedCount === 1 ? "y" : "ies"} saved. Now let's find a real human inside one of them — that's where the magic happens.`;
-    if (completed === 0) return `You've got contacts and companies queued up. Crack open today's task and turn that prep into momentum.`;
-    return `${completed} task${completed === 1 ? "" : "s"} done, ${contactCount} contact${contactCount === 1 ? "" : "s"}, ${savedCount} compan${savedCount === 1 ? "y" : "ies"} on the radar. That's real progress — keep showing up.`;
+    // Happy Hat tone: warm, casual, cowboy energy with a "we're in this together" mentality.
+    // No em dashes, no formal AI cadence, no therapy-speak. Light humor, real encouragement.
+    const empty = [
+      "Howdy! Alright, let's get rolling. We can do this. Add a contact or save a company and we are officially off the bench!",
+      "Hey friend! I am right here with ya. Tiny first step today and we start stacking real wins. Easy does it.",
+      "Shoot, every great career starts with one conversation. Let's pick a target and get goin'. I got your back.",
+    ];
+    const contactsOnly = [
+      `${contactCount} contact${contactCount === 1 ? "" : "s"} already? Look at you go! Let's pin down a few target companies next so we know where we are aimin'.`,
+      `Nice! You are putting yourself out there way more than most folks ever do. Now let's lock in some companies and get focused.`,
+    ];
+    const companiesOnly = [
+      `${savedCount} compan${savedCount === 1 ? "y" : "ies"} on the radar. Now let's find one real human inside one of em. That is where the magic happens, partner.`,
+      `Solid target list! Companies don't hire companies though, people hire people. Let's go find a person to talk to.`,
+    ];
+    const noTasksDone = [
+      "Lots of pieces on the board now. Let's crack open today's task and turn this prep into real momentum. We got this.",
+      "Alright, the prep work is set. Now we just gotta hit send on the next move. I'll be cheering ya on.",
+    ];
+    const cruising = [
+      `${completed} task${completed === 1 ? "" : "s"} done, ${contactCount} contact${contactCount === 1 ? "" : "s"}, ${savedCount} compan${savedCount === 1 ? "y" : "ies"} on the radar. Shoot man, that is real progress!`,
+      `${completed} done already? You are stackin' reps. Every conversation gets a little easier from here. Keep showing up.`,
+      `I tell ya what, if you keep this up you are gonna be dangerous in the best way possible. Proud of ya.`,
+    ];
+    const pool =
+      contactCount === 0 && savedCount === 0 ? empty
+      : contactCount > 0 && savedCount === 0 ? contactsOnly
+      : savedCount > 0 && contactCount === 0 ? companiesOnly
+      : completed === 0 ? noTasksDone
+      : cruising;
+    // Stable per-day rotation so the message doesn't change on every render.
+    const dayIdx = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % pool.length;
+    return pool[dayIdx];
   }, [contactCount, savedCount, completed]);
 
   return (
@@ -1629,7 +1688,7 @@ function HappyHatCoach({
         <div className="flex-1">
           <div className="text-sm font-semibold flex items-center gap-2" data-testid="text-happy-hat-title">
             Happy Hat
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-800">Your coach</span>
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-blue-800">Your coach</span>
           </div>
           <div className="mt-1 text-sm text-text-primary leading-relaxed" data-testid="text-happy-hat-message">
             {encouragement}
@@ -1667,7 +1726,7 @@ function HappyHatCoach({
         <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Tell Happy Hat what's going on</div>
         <textarea
           className="min-h-[90px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-          placeholder="e.g., I sent outreach to 5 people but heard back from only 1, or I just got an interview at Stripe..."
+          placeholder="What's going on this week? Wins, rejections, weird interviews, anything. I am right here with ya."
           value={checkInText}
           onChange={(e) => setCheckInText(e.target.value)}
           data-testid="textarea-coach-checkin"

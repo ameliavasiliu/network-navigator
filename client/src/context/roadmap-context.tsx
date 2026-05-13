@@ -1662,6 +1662,8 @@ interface RoadmapContextType {
   completeTask: (taskId: string, evidence: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addCoachCheckIn: (content: string) => void;
+  globalContacts: Contact[];
+  globalSavedCompanies: SavedCompany[];
   addContact: (contact: Omit<Contact, "id">) => void;
   updateContact: (contactId: string, updates: Partial<Contact>) => void;
   deleteContact: (contactId: string) => void;
@@ -1695,61 +1697,103 @@ const RoadmapContext = createContext<RoadmapContextType | null>(null);
 const STORAGE_KEY = "network-navigator-roadmaps";
 const CURRENT_ROADMAP_KEY = "network-navigator-current";
 const WIZARD_DRAFT_KEY = "network-navigator-wizard-draft";
+const GLOBAL_CONTACTS_KEY = "network-navigator-global-contacts";
+const GLOBAL_COMPANIES_KEY = "network-navigator-global-companies";
+
+function migrateRoadmap(r: any): Roadmap {
+  return {
+    ...r,
+    contacts: (r.contacts || []).map((c: any) => ({
+      ...c,
+      affiliation: c.affiliation || "other",
+      school: c.school || "",
+      email: c.email || "",
+      phone: c.phone || "",
+    })),
+    checkIns: r.checkIns || [],
+    companies: r.companies || [],
+    savedCompanies: r.savedCompanies || [],
+    circumstanceUpdate: r.circumstanceUpdate || "",
+    lastDailyRefresh: r.lastDailyRefresh || new Date().toISOString(),
+    lastWeeklyRefresh: r.lastWeeklyRefresh || new Date().toISOString(),
+    lastCompanyRefresh: r.lastCompanyRefresh || new Date().toISOString(),
+    tasks: (r.tasks || []).map((t: any) => ({
+      ...t,
+      conceptCoaching: t.conceptCoaching || "",
+      practiceQuiz: t.practiceQuiz || undefined,
+      reflectionPrompts: t.reflectionPrompts || undefined,
+      subtasks: t.subtasks || (t.steps ? t.steps.map((s: string, i: number) => ({ id: `migrated-${i}`, label: s, completed: t.status === "completed" })) : []),
+      internationalConsiderations: t.internationalConsiderations || t.culturalTip || undefined,
+    })),
+  };
+}
+
+function loadInitialRoadmaps(): Roadmap[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    return JSON.parse(stored).map(migrateRoadmap);
+  } catch {
+    return [];
+  }
+}
+
+function loadInitialGlobalContacts(roadmaps: Roadmap[]): Contact[] {
+  try {
+    const stored = localStorage.getItem(GLOBAL_CONTACTS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  // Migrate from per-roadmap contacts
+  const seen = new Map<string, Contact>();
+  for (const r of roadmaps) {
+    for (const c of r.contacts || []) {
+      if (!seen.has(c.id)) seen.set(c.id, c);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+function loadInitialGlobalCompanies(roadmaps: Roadmap[]): SavedCompany[] {
+  try {
+    const stored = localStorage.getItem(GLOBAL_COMPANIES_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  const seen = new Map<string, SavedCompany>();
+  for (const r of roadmaps) {
+    for (const c of r.savedCompanies || []) {
+      if (!seen.has(c.id)) seen.set(c.id, c);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+function loadInitialWizardDraft(): WizardFormData {
+  try {
+    const stored = localStorage.getItem(WIZARD_DRAFT_KEY);
+    if (stored) return { ...defaultWizardFormData, ...JSON.parse(stored) };
+  } catch {}
+  return defaultWizardFormData;
+}
 
 export function RoadmapProvider({ children }: { children: ReactNode }) {
-  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
-  const [currentRoadmapId, setCurrentRoadmapId] = useState<string | null>(null);
-  const [wizardFormData, setWizardFormData] = useState<WizardFormData>(defaultWizardFormData);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const migrated = parsed.map((r: any) => ({
-          ...r,
-          contacts: (r.contacts || []).map((c: any) => ({
-            ...c,
-            affiliation: c.affiliation || "other",
-            school: c.school || "",
-            email: c.email || "",
-            phone: c.phone || "",
-          })),
-          checkIns: r.checkIns || [],
-          companies: r.companies || [],
-          savedCompanies: r.savedCompanies || [],
-          circumstanceUpdate: r.circumstanceUpdate || "",
-          lastDailyRefresh: r.lastDailyRefresh || new Date().toISOString(),
-          lastWeeklyRefresh: r.lastWeeklyRefresh || new Date().toISOString(),
-          lastCompanyRefresh: r.lastCompanyRefresh || new Date().toISOString(),
-          tasks: (r.tasks || []).map((t: any) => ({
-            ...t,
-            conceptCoaching: t.conceptCoaching || "",
-            practiceQuiz: t.practiceQuiz || undefined,
-            reflectionPrompts: t.reflectionPrompts || undefined,
-            subtasks: t.subtasks || (t.steps ? t.steps.map((s: string, i: number) => ({ id: `migrated-${i}`, label: s, completed: t.status === "completed" })) : []),
-            internationalConsiderations: t.internationalConsiderations || t.culturalTip || undefined,
-          })),
-        }));
-        setRoadmaps(migrated);
-      } catch (e) {
-        console.error("Failed to parse stored roadmaps", e);
-      }
-    }
-    const storedCurrent = localStorage.getItem(CURRENT_ROADMAP_KEY);
-    if (storedCurrent) {
-      setCurrentRoadmapId(storedCurrent);
-    }
-    const storedDraft = localStorage.getItem(WIZARD_DRAFT_KEY);
-    if (storedDraft) {
-      try {
-        const draft = JSON.parse(storedDraft);
-        setWizardFormData((prev) => ({ ...prev, ...draft }));
-      } catch (e) {
-        // ignore corrupt draft
-      }
-    }
-  }, []);
+  // Synchronous hydration to avoid blank-flash on refresh / step navigation.
+  const [roadmaps, setRoadmaps] = useState<Roadmap[]>(() => {
+    const initial = loadInitialRoadmaps();
+    const globalC = loadInitialGlobalContacts(initial);
+    const globalCo = loadInitialGlobalCompanies(initial);
+    // Mirror global pools into every roadmap so existing UI reading roadmap.contacts works.
+    return initial.map((r) => ({ ...r, contacts: globalC, savedCompanies: globalCo }));
+  });
+  const [currentRoadmapId, setCurrentRoadmapId] = useState<string | null>(() => {
+    return localStorage.getItem(CURRENT_ROADMAP_KEY);
+  });
+  const [wizardFormData, setWizardFormData] = useState<WizardFormData>(loadInitialWizardDraft);
+  const [globalContacts, setGlobalContacts] = useState<Contact[]>(() => {
+    return loadInitialGlobalContacts(loadInitialRoadmaps());
+  });
+  const [globalSavedCompanies, setGlobalSavedCompanies] = useState<SavedCompany[]>(() => {
+    return loadInitialGlobalCompanies(loadInitialRoadmaps());
+  });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(roadmaps));
@@ -1760,6 +1804,14 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(CURRENT_ROADMAP_KEY, currentRoadmapId);
     }
   }, [currentRoadmapId]);
+
+  useEffect(() => {
+    localStorage.setItem(GLOBAL_CONTACTS_KEY, JSON.stringify(globalContacts));
+  }, [globalContacts]);
+
+  useEffect(() => {
+    localStorage.setItem(GLOBAL_COMPANIES_KEY, JSON.stringify(globalSavedCompanies));
+  }, [globalSavedCompanies]);
 
   useEffect(() => {
     const isDefault = JSON.stringify(wizardFormData) === JSON.stringify(defaultWizardFormData);
@@ -1819,10 +1871,12 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
         ? `${wizardFormData.additionalContext}${wizardFormData.additionalContext ? "\n\n" : ""}---\nResume (${wizardFormData.resumeFileName || "uploaded"}):\n${wizardFormData.parsedResume.slice(0, 4000)}`
         : wizardFormData.additionalContext,
       tasks,
-      contacts: [],
+      // Seed new roadmap with the current global contact/company pools so the user
+      // immediately sees their existing network rather than an empty state.
+      contacts: globalContacts,
       checkIns: [],
       companies,
-      savedCompanies: [],
+      savedCompanies: globalSavedCompanies,
       circumstanceUpdate: "",
       lastDailyRefresh: new Date().toISOString(),
       lastWeeklyRefresh: new Date().toISOString(),
@@ -1839,17 +1893,20 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
   };
 
   const prefillWizardFromLastRoadmap = () => {
+    // Only prefill when the user hasn't touched any field yet — otherwise we'd wipe
+    // their in-progress data when they navigate back to step 1.
+    const hasDraft = JSON.stringify(wizardFormData) !== JSON.stringify(defaultWizardFormData);
+    if (hasDraft) return;
     if (roadmaps.length > 0) {
       const last = roadmaps[0];
       setWizardFormData({
+        ...defaultWizardFormData,
         yearInSchool: last.yearInSchool,
         major: last.major,
         school: last.school,
         isInternational: last.isInternational ? "Yes" : "No",
         degree: last.degree,
         currentExperience: last.currentExperience,
-        goal: "",
-        additionalContext: "",
       });
     }
   };
@@ -1995,91 +2052,76 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
     return tasksChanged ? updatedTasks : roadmap.tasks;
   };
 
-  const addContact = (contact: Omit<Contact, "id">) => {
+  // -- Global contacts / companies --
+  // All CRUD updates the shared global pool, then mirrors the new pool into every
+  // roadmap's `contacts` / `savedCompanies` array so existing roadmap-view code that
+  // reads from `roadmap.contacts` keeps working unchanged. Milestone unlock logic
+  // still fires for the current roadmap.
+  const mirrorContactsToAll = (newContacts: Contact[]) => {
+    // Recompute milestone unlocks for every roadmap (not just current) so that any
+    // roadmap depending on contact-count milestones unlocks deterministically, even
+    // when the user is editing contacts from the standalone /contacts page with no
+    // active roadmap selected.
     setRoadmaps((prev) =>
-      prev.map((roadmap) => {
-        if (roadmap.id !== currentRoadmapId) return roadmap;
-        const newContact: Contact = {
-          ...contact,
-          id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        };
-        const updated = { ...roadmap, contacts: [...roadmap.contacts, newContact] };
-        updated.tasks = checkMilestoneUnlocks(updated);
-        return updated;
+      prev.map((r) => {
+        const updated = { ...r, contacts: newContacts };
+        return { ...updated, tasks: checkMilestoneUnlocks(updated) };
       })
     );
+  };
+
+  const mirrorCompaniesToAll = (newCompanies: SavedCompany[]) => {
+    setRoadmaps((prev) =>
+      prev.map((r) => {
+        const updated = { ...r, savedCompanies: newCompanies };
+        return { ...updated, tasks: checkMilestoneUnlocks(updated) };
+      })
+    );
+  };
+
+  const addContact = (contact: Omit<Contact, "id">) => {
+    const newContact: Contact = {
+      ...contact,
+      id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    };
+    const newPool = [...globalContacts, newContact];
+    setGlobalContacts(newPool);
+    mirrorContactsToAll(newPool);
   };
 
   const updateContact = (contactId: string, updates: Partial<Contact>) => {
-    setRoadmaps((prev) =>
-      prev.map((roadmap) => {
-        if (roadmap.id !== currentRoadmapId) return roadmap;
-        const updated = {
-          ...roadmap,
-          contacts: roadmap.contacts.map((c) =>
-            c.id === contactId ? { ...c, ...updates } : c
-          ),
-        };
-        updated.tasks = checkMilestoneUnlocks(updated);
-        return updated;
-      })
-    );
+    const newPool = globalContacts.map((c) => (c.id === contactId ? { ...c, ...updates } : c));
+    setGlobalContacts(newPool);
+    mirrorContactsToAll(newPool);
   };
 
   const deleteContact = (contactId: string) => {
-    setRoadmaps((prev) =>
-      prev.map((roadmap) => {
-        if (roadmap.id !== currentRoadmapId) return roadmap;
-        return {
-          ...roadmap,
-          contacts: roadmap.contacts.filter((c) => c.id !== contactId),
-        };
-      })
-    );
+    const newPool = globalContacts.filter((c) => c.id !== contactId);
+    setGlobalContacts(newPool);
+    mirrorContactsToAll(newPool);
   };
 
   const saveCompany = (company: Omit<SavedCompany, "id" | "savedAt">) => {
-    setRoadmaps((prev) =>
-      prev.map((roadmap) => {
-        if (roadmap.id !== currentRoadmapId) return roadmap;
-        const newCompany: SavedCompany = {
-          ...company,
-          id: `saved-co-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          savedAt: new Date().toISOString(),
-        };
-        const updated = { ...roadmap, savedCompanies: [...roadmap.savedCompanies, newCompany] };
-        updated.tasks = checkMilestoneUnlocks(updated);
-        return updated;
-      })
-    );
+    const newCompany: SavedCompany = {
+      ...company,
+      id: `saved-co-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      savedAt: new Date().toISOString(),
+    };
+    const newPool = [...globalSavedCompanies, newCompany];
+    setGlobalSavedCompanies(newPool);
+    mirrorCompaniesToAll(newPool);
   };
 
   const updateSavedCompany = (companyId: string, updates: Partial<SavedCompany>) => {
-    setRoadmaps((prev) =>
-      prev.map((roadmap) => {
-        if (roadmap.id !== currentRoadmapId) return roadmap;
-        const updated = {
-          ...roadmap,
-          savedCompanies: roadmap.savedCompanies.map((c) =>
-            c.id === companyId ? { ...c, ...updates } : c
-          ),
-        };
-        updated.tasks = checkMilestoneUnlocks(updated);
-        return updated;
-      })
-    );
+    const newPool = globalSavedCompanies.map((c) => (c.id === companyId ? { ...c, ...updates } : c));
+    setGlobalSavedCompanies(newPool);
+    mirrorCompaniesToAll(newPool);
   };
 
   const removeSavedCompany = (companyId: string) => {
-    setRoadmaps((prev) =>
-      prev.map((roadmap) => {
-        if (roadmap.id !== currentRoadmapId) return roadmap;
-        return {
-          ...roadmap,
-          savedCompanies: roadmap.savedCompanies.filter((c) => c.id !== companyId),
-        };
-      })
-    );
+    const newPool = globalSavedCompanies.filter((c) => c.id !== companyId);
+    setGlobalSavedCompanies(newPool);
+    mirrorCompaniesToAll(newPool);
   };
 
   const updateCircumstances = (text: string) => {
@@ -2168,6 +2210,8 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       value={{
         roadmaps,
         currentRoadmap,
+        globalContacts,
+        globalSavedCompanies,
         wizardFormData,
         updateWizardFormData,
         createRoadmap,
