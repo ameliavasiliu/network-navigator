@@ -3,8 +3,116 @@ import { useNavigate } from "react-router-dom";
 import { FeatureCard } from "@/components/feature-card";
 import { KpiCard } from "@/components/kpi-card";
 import { PageHeader } from "@/components/page-header";
-import { Network, MessageSquareText, Rocket } from "lucide-react";
+import { Network, Rocket, Info } from "lucide-react";
 import { useRoadmap } from "@/context/roadmap-context";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+const MOMENTUM_KEY = "opendoorai-momentum";
+
+interface MomentumState {
+  streak: number;
+  lastVisitDate: string;
+}
+
+const STREAK_TIERS: Array<{ min: number; emoji: string; label: string }> = [
+  { min: 29, emoji: "👽", label: "Legendary momentum (29+ days)" },
+  { min: 22, emoji: "💎", label: "Diamond streak (22–28 days)" },
+  { min: 15, emoji: "🔥", label: "On fire (15–21 days)" },
+  { min: 8, emoji: "🤩", label: "In the zone (8–14 days)" },
+  { min: 2, emoji: "😄", label: "Building momentum (2–7 days)" },
+  { min: 1, emoji: "🙂", label: "Day one — let's go (1 day)" },
+  { min: 0, emoji: "😔", label: "No streak yet" },
+];
+
+function getTier(streak: number) {
+  return STREAK_TIERS.find((t) => streak >= t.min) || STREAK_TIERS[STREAK_TIERS.length - 1];
+}
+
+function todayKey() {
+  // Local calendar date — important for streaks across timezones near midnight UTC.
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function daysBetween(a: string, b: string) {
+  const da = new Date(a + "T00:00:00").getTime();
+  const db = new Date(b + "T00:00:00").getTime();
+  return Math.round((db - da) / (1000 * 60 * 60 * 24));
+}
+
+function useMomentum(): MomentumState {
+  const [state, setState] = React.useState<MomentumState>(() => {
+    try {
+      const raw = localStorage.getItem(MOMENTUM_KEY);
+      const today = todayKey();
+      if (!raw) {
+        const fresh = { streak: 1, lastVisitDate: today };
+        localStorage.setItem(MOMENTUM_KEY, JSON.stringify(fresh));
+        return fresh;
+      }
+      const parsed: MomentumState = JSON.parse(raw);
+      const diff = daysBetween(parsed.lastVisitDate, today);
+      let next: MomentumState;
+      if (diff === 0) next = parsed;
+      else if (diff === 1) next = { streak: parsed.streak + 1, lastVisitDate: today };
+      else next = { streak: 1, lastVisitDate: today };
+      localStorage.setItem(MOMENTUM_KEY, JSON.stringify(next));
+      return next;
+    } catch {
+      return { streak: 1, lastVisitDate: todayKey() };
+    }
+  });
+  return state;
+}
+
+function MomentumCard() {
+  const { streak } = useMomentum();
+  const tier = getTier(streak);
+  return (
+    <div
+      className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm"
+      data-testid="card-kpi-momentum"
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium text-text-secondary">Momentum</div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="rounded-full p-1 text-text-secondary hover:bg-black/5 hover:text-text-primary"
+              data-testid="button-momentum-info"
+              aria-label="How momentum works"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-xs text-xs">
+            <div className="font-semibold mb-1">Momentum tiers</div>
+            <ul className="space-y-0.5">
+              <li>0 days → 😔</li>
+              <li>1 day → 🙂</li>
+              <li>2–7 days → 😄</li>
+              <li>8–14 days → 🤩</li>
+              <li>15–21 days → 🔥</li>
+              <li>22–28 days → 💎</li>
+              <li>29+ days → 👽</li>
+            </ul>
+            <div className="mt-1 text-[11px] opacity-80">Visit daily to keep your streak alive.</div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <div className="text-2xl font-bold text-text-primary" data-testid="text-momentum-value">{streak}</div>
+        <div className="text-2xl" aria-hidden data-testid="text-momentum-emoji">{tier.emoji}</div>
+        <div className="text-xs text-text-secondary">day{streak === 1 ? "" : "s"}</div>
+      </div>
+      <div className="mt-1 text-xs text-text-secondary">{tier.label}</div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -25,27 +133,24 @@ export default function Dashboard() {
 
   const displayRoadmaps = roadmaps.slice(0, 3);
 
+  const totalContacts = roadmaps.reduce((sum, r) => sum + (r.contacts?.length || 0), 0);
+
   return (
     <div className="space-y-8" data-testid="screen-dashboard">
       <PageHeader
-        title="Hello, Dev User!"
-        subtitle="Here's an overview of your interview preparation journey."
+        title="Welcome back!"
+        subtitle="Your daily networking and career momentum coach."
         testId="header-dashboard"
       />
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3" data-testid="section-kpis">
         <KpiCard
-          label="Mock Interviews"
-          value="0"
-          helper="Completed sessions"
-          testId="card-kpi-mock-interviews"
+          label="Conversations Started"
+          value={String(totalContacts)}
+          helper="Contacts tracked across roadmaps"
+          testId="card-kpi-contacts"
         />
-        <KpiCard
-          label="Active Weeks Streak"
-          value="2"
-          helper="Consecutive weeks you've used the platform"
-          testId="card-kpi-active-streak"
-        />
+        <MomentumCard />
         <div
           className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 shadow-sm transition-colors hover:bg-primary/10"
           data-testid="card-document-status"
@@ -71,20 +176,13 @@ export default function Dashboard() {
           Get Started
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" data-testid="grid-feature-cards">
+        <div className="grid grid-cols-1 gap-4" data-testid="grid-feature-cards">
           <FeatureCard
             icon={<Network className="h-6 w-6" />}
             title="Network Navigator"
             description="Create a tailored networking roadmap and get actionable outreach steps."
             onStart={() => navigate("/network-navigator")}
             testId="card-feature-network-navigator"
-          />
-          <FeatureCard
-            icon={<MessageSquareText className="h-6 w-6" />}
-            title="Mock Interview Tool"
-            description="Practice interview questions with structured sessions and targeted feedback."
-            onStart={() => navigate("/mock-interview")}
-            testId="card-feature-mock-interview"
           />
         </div>
       </section>

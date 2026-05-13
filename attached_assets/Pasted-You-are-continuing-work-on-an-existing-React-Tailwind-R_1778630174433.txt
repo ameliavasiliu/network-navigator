@@ -1,0 +1,285 @@
+You are continuing work on an existing React + Tailwind + React Router Network Navigator application.
+IMPORTANT:
+Do NOT redesign the UI from scratch.
+Preserve the existing visual system, spacing, color palette, sidebar, cards, and tab structure.
+Preserve existing routing architecture and localStorage persistence.
+Focus on improving UX polish, roadmap logic, task persistence, onboarding persistence, and adding the Happy Hat coaching system.
+Do NOT break any currently working functionality.
+Make all changes incrementally and safely.
+The current application already includes:
+Dashboard
+Network Navigator
+Roadmap generation
+Daily/weekly tasks
+Contacts tab
+Companies tab
+Coaching/task flow
+Local persistence
+This prompt is specifically for a major polish + engagement + coaching update.
+
+PHASE 1 — REMOVE UNUSED MOCK INTERVIEW FEATURES
+Remove all references to the Mock Interview Tool from:
+Sidebar navigation
+Dashboard cards
+Dashboard previews
+Routing
+Any placeholder sections
+Do NOT remove shared styling/components unless they are unused.
+The product should now feel fully centered around Network Navigator.
+
+PHASE 2 — LOGIN STREAK / ENGAGEMENT SYSTEM
+Replace the “Active Weeks Streak” card with a more playful daily engagement streak system.
+Rename it to something catchy like:
+Momentum
+Streak Mode
+Consistency Level
+Daily Momentum
+Choose the best option.
+Functionality:
+Count consecutive days user logs in
+Store in localStorage
+Reset if user misses a full day
+Detect daily return visits
+Display:
+Current streak number
+Emoji/status icon next to it
+Emoji hierarchy:
+ 0 days → 😔
+ 1 day → 🙂
+ 2–7 days → 😄
+ 8–14 days → 🤩
+ 15–21 days → 🔥
+ 22–28 days → 💎
+ 29+ days → 👽
+Add a small hoverable info icon (i).
+ On hover:
+Show tooltip/modal with the hierarchy explanation.
+UI should feel polished and playful but not childish.
+
+PHASE 3 — GENERALIZE THE PLATFORM
+The product should no longer feel exclusively targeted toward international MBA students.
+Keep international student support fully functional internally, BUT:
+remove heavy visual emphasis
+remove wording that assumes international students need help
+position the app broadly for:
+undergraduate students
+graduate students
+career switchers
+internship seekers
+early professionals
+International-specific coaching should only appear if:
+user selects international student checkbox
+ OR
+user explicitly asks for help related to visas/work authorization/cultural adaptation.
+Make tone:
+uplifting
+proactive
+networking-focused
+opportunity-focused
+The product should feel like:
+ “Daily networking and career momentum coaching.”
+
+PHASE 4 — FIX ROADMAP CREATION FORM PERSISTENCE
+Current issue:
+ When users go forward/backward through roadmap creation steps, their entered information resets.
+Fix this.
+Requirements:
+Autosave all fields immediately while typing
+Preserve state across step navigation
+Preserve state on refresh
+Persist partially completed roadmap forms in localStorage
+Applies to:
+Step 1
+Step 2
+Step 3
+Step 4
+
+PHASE 5 — MAKE RESUME UPLOAD FUNCTIONAL
+The current resume upload is cosmetic only.
+Implement actual local resume parsing.
+Requirements:
+Allow PDF or DOCX upload
+Extract text locally
+Store parsed resume content in roadmap state/context
+Use parsed resume information when generating roadmap/tasks
+The AI/task generation system should reference:
+previous internships
+leadership experience
+clubs
+industries
+technical skills
+companies previously worked at
+Examples:
+If user worked at Deloitte:
+ suggest consulting/alumni networking
+If user has marketing experience:
+ suggest growth/startup companies
+If user worked in hospitality:
+ suggest emphasizing communication/customer-facing strengths
+The roadmap/tasks should feel more personalized using resume data.
+IMPORTANT:
+ No backend required yet.
+ Keep implementation local/mock-friendly.
+
+PHASE 6 — TASK IMPROVEMENTS
+Current task flow is good structurally but needs polish.
+TASK RESET TIMER:
+ Add a live countdown timer in Tasks tab:
+hours
+minutes
+seconds
+It counts down until:
+Daily tasks reset at 12:00 AM local time
+Weekly task resets Monday at 12:00 AM
+Display should feel motivating and polished.
+
+REFLECTION UPDATE
+Current reflection step is too long.
+Reduce reflection section to:
+ONE meaningful reflection question only
+Examples:
+“What was the hardest part of today’s outreach?”
+“What’s one thing you learned from this networking interaction?”
+“What made you nervous during outreach today?”
+Also add:
+Quick buttons linking directly to:
+Contacts tab
+Companies tab
+
+ROADMAP EVOLUTION LOGIC
+Current roadmap stops too early.
+Update roadmap engine so:
+roadmap continuously evolves
+new tasks generate dynamically
+roadmap keeps extending until:
+user reports interviews
+user reports offers
+user reports employment
+Examples:
+ If user says:
+“I got an interview”
+ → generate interview prep tasks
+If user says:
+“I connected with someone at Microsoft”
+ → generate follow-up/referral tasks
+If user says:
+“Nobody is responding”
+ → generate networking refinement tasks
+The roadmap should adapt based on:
+contact activity
+companies saved/applied to
+coach updates
+completed tasks
+Major emphasis:
+ Networking pipeline.
+Networking process should repeatedly reinforce:
+Find people
+Connect
+Send outreach
+Have conversation
+Follow up
+Ask for referrals appropriately
+Repeat consistently
+
+PHASE 7 — IMPROVE COMPANY ENGINE
+Companies tab currently works well.
+Enhancements:
+increase recommendations from 6 → 12 daily
+refresh every day at midnight
+recommendations should better align with:
+student interests
+uploaded resume
+selected industries
+roadmap goals
+Prioritize:
+small/mid-sized companies
+startups
+hidden opportunities
+ NOT only giant corporations.
+Keep:
+starring
+status tracking
+filtering
+
+PHASE 8 — HAPPY HAT COACH SYSTEM
+This is extremely important.
+Replace the current generic coaching textbox with a persistent AI coach called:
+Happy Hat
+CHARACTER:
+Cute American cowboy hat icon
+Minimal/simple face
+Friendly
+Encouraging
+Funny at times
+Emotionally supportive
+Motivational without feeling fake
+VISUAL BEHAVIOR:
+Floating corner coach icon
+Occasionally wiggles/shakes subtly
+Clicking opens coach panel/chat
+The coach should feel:
+warm
+optimistic
+human
+supportive during stressful career search moments
+Happy Hat should:
+answer questions
+provide encouragement
+check in on progress
+collect roadmap updates
+help students through networking anxiety
+celebrate wins
+Examples:
+“Nice work reaching out to 3 new people today.”
+“That follow-up message was thoughtful. Proud of you for sending it.”
+“Networking can feel awkward at first — that’s normal. Momentum matters more than perfection.”
+IMPORTANT:
+ Do NOT make it cartoonishly childish.
+ Tone should feel:
+emotionally intelligent
+mentor-like
+uplifting
+FUNCTIONALLY:
+ Happy Hat replaces the old coaching update textbox.
+Happy Hat should:
+read roadmap state
+read task completion
+read contacts activity
+read companies activity
+It should then:
+suggest roadmap updates
+generate encouragement
+propose next actions
+Examples:
+ If user added new contacts:
+ → suggest follow-up timing
+If user saved startups:
+ → suggest founder outreach
+If user hasn’t progressed:
+ → encourage consistency gently
+UI:
+polished
+animated subtly
+clean modern modal/chat experience
+maintain existing aesthetic system
+
+PHASE 9 — IMPORTANT IMPLEMENTATION NOTES
+DO NOT:
+break current routing
+break current persistence
+redesign app visually
+remove existing working features
+DO:
+improve coaching depth
+improve roadmap intelligence
+improve engagement loops
+improve onboarding persistence
+improve networking utility
+make product feel alive
+The final product should feel like:
+ “Duolingo for networking and career momentum.”
+After implementation:
+summarize all architectural changes made
+explain any new data models/context structures
+explain any remaining placeholders for future AI/backend integrations
+identify any features that are currently mocked vs fully functional

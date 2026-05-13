@@ -1,8 +1,37 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, AlertCircle } from "lucide-react";
+import { ChevronLeft, AlertCircle, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { useRoadmap, WizardFormData } from "@/context/roadmap-context";
+
+async function parseResumeFile(file: File): Promise<string> {
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".docx")) {
+    const mammoth = await import("mammoth/mammoth.browser");
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value || "";
+  }
+  if (name.endsWith(".pdf")) {
+    const pdfjsLib: any = await import("pdfjs-dist");
+    // Vite-friendly worker URL: ?url returns a hashed asset path that works in dev and prod.
+    const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((it: any) => it.str).join(" ") + "\n";
+    }
+    return text;
+  }
+  if (name.endsWith(".txt")) {
+    return await file.text();
+  }
+  throw new Error("Unsupported file type. Please upload a PDF, DOCX, or TXT file.");
+}
 
 interface StepProps {
   data: WizardFormData;
@@ -56,13 +85,69 @@ function StepOneContent({ data, onChange }: StepProps) {
 
 function StepTwoContent({ data, onChange }: StepProps) {
   const isEmpty = !data.currentExperience.trim();
+  const [parsing, setParsing] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setParsing(true);
+    try {
+      const text = await parseResumeFile(file);
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      onChange({ resumeFileName: file.name, parsedResume: cleaned });
+      // If experience field is empty, auto-prefill from resume excerpt to give the user a head start
+      if (!data.currentExperience.trim() && cleaned.length > 40) {
+        onChange({ currentExperience: cleaned.slice(0, 600) + (cleaned.length > 600 ? "…" : "") });
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to parse resume.");
+    } finally {
+      setParsing(false);
+    }
+  };
+
   return (
     <div className="space-y-5" data-testid="wizard-step-2">
       <label className="block" data-testid="field-resume">
         <div className="text-sm font-semibold" data-testid="field-resume-label">Upload your resume</div>
         <div className="mt-2 rounded-xl border border-dashed border-border bg-white p-5">
-          <input type="file" className="text-sm" data-testid="input-resume" />
-          <div className="mt-2 text-xs text-text-secondary" data-testid="text-resume-help">PDF/DOCX. (Resume parsing coming soon)</div>
+          <input
+            type="file"
+            accept=".pdf,.docx,.txt"
+            className="text-sm"
+            onChange={handleFile}
+            data-testid="input-resume"
+          />
+          <div className="mt-2 text-xs text-text-secondary" data-testid="text-resume-help">
+            PDF, DOCX, or TXT. We'll read it on your device — nothing is uploaded — and use it to personalize your roadmap.
+          </div>
+          {parsing && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-text-secondary" data-testid="text-resume-parsing">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your resume...
+            </div>
+          )}
+          {error && (
+            <div className="mt-3 text-xs text-red-600" data-testid="text-resume-error">{error}</div>
+          )}
+          {data.resumeFileName && !parsing && !error && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-emerald-700" data-testid="text-resume-success">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Loaded <span className="font-medium">{data.resumeFileName}</span>
+              {data.parsedResume && <span className="text-text-secondary">· {data.parsedResume.length.toLocaleString()} chars</span>}
+            </div>
+          )}
+          {data.parsedResume && (
+            <details className="mt-3 text-xs">
+              <summary className="cursor-pointer text-text-secondary hover:text-text-primary inline-flex items-center gap-1">
+                <FileText className="h-3 w-3" /> Preview parsed text
+              </summary>
+              <div className="mt-2 max-h-40 overflow-auto rounded-lg bg-gray-50 border border-border p-3 text-text-secondary whitespace-pre-wrap">
+                {data.parsedResume.slice(0, 1500)}{data.parsedResume.length > 1500 ? "…" : ""}
+              </div>
+            </details>
+          )}
         </div>
       </label>
       <label className="block" data-testid="field-experience">
@@ -70,7 +155,7 @@ function StepTwoContent({ data, onChange }: StepProps) {
           What is your current circumstance/professional/academic experience?
           <span className="text-red-400 text-xs">*</span>
         </div>
-        <textarea className={`mt-2 min-h-[120px] w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none focus:border-primary ${isEmpty ? "border-red-200" : "border-border"}`} placeholder="Type here..." value={data.currentExperience} onChange={(e) => onChange({ currentExperience: e.target.value })} data-testid="textarea-experience" />
+        <textarea className={`mt-2 min-h-[120px] w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none focus:border-primary ${isEmpty ? "border-red-200" : "border-border"}`} placeholder="Type here, or upload a resume above and we'll prefill this." value={data.currentExperience} onChange={(e) => onChange({ currentExperience: e.target.value })} data-testid="textarea-experience" />
       </label>
     </div>
   );

@@ -157,6 +157,8 @@ export interface WizardFormData {
   currentExperience: string;
   goal: string;
   additionalContext: string;
+  resumeFileName?: string;
+  parsedResume?: string;
 }
 
 type TaskTemplate = Omit<Task, "id" | "status" | "completionEvidence" | "internationalConcern">;
@@ -1508,6 +1510,12 @@ const COMPANY_DATABASE: Record<string, CompanyInfo[]> = {
     { name: "Evercore", roleDescription: "Advisory Analyst: Independent advisory focused on M&A and restructuring. High deal exposure with lean teams.", commonSkills: ["Valuation", "Deal Execution", "LBO Modeling"], jobPageUrl: "https://www.evercore.com/careers/" },
     { name: "Lazard", roleDescription: "Financial Advisory Analyst: Cross-border M&A advisory and restructuring. Strong international exposure.", commonSkills: ["Cross-Border M&A", "Restructuring", "Financial Analysis"], jobPageUrl: "https://www.lazard.com/careers/" },
     { name: "Citi", roleDescription: "Investment Banking Analyst: Global banking operations with strong emerging markets presence.", commonSkills: ["Global Markets", "Risk Analysis", "Client Coverage"], jobPageUrl: "https://www.citigroup.com/careers/" },
+    { name: "Houlihan Lokey", roleDescription: "Mid-market M&A and restructuring advisory. Strong sponsor coverage and high analyst deal flow.", commonSkills: ["Restructuring", "Mid-Market M&A", "Valuation"], jobPageUrl: "https://www.hl.com/careers/" },
+    { name: "Moelis & Company", roleDescription: "Boutique advisory: high-stakes M&A and restructuring with lean teams and direct senior banker exposure.", commonSkills: ["Deal Execution", "LBO Modeling", "Client Coverage"], jobPageUrl: "https://www.moelis.com/careers/" },
+    { name: "Centerview Partners", roleDescription: "Elite boutique focused on the largest M&A advisory mandates with intense analyst training.", commonSkills: ["Strategic Advisory", "Financial Modeling", "Industry Research"], jobPageUrl: "https://www.centerviewpartners.com/careers/" },
+    { name: "Guggenheim Securities", roleDescription: "Mid-size firm with growing M&A and capital markets practice. Strong healthcare and tech coverage.", commonSkills: ["Sector Coverage", "Capital Markets", "Pitch Books"], jobPageUrl: "https://www.guggenheimpartners.com/careers" },
+    { name: "Stifel Financial", roleDescription: "Mid-market investment bank with growing institutional and wealth management arms.", commonSkills: ["Mid-Cap Coverage", "Equity Research", "Sales & Trading"], jobPageUrl: "https://www.stifel.com/careers" },
+    { name: "Piper Sandler", roleDescription: "Middle-market investment bank with strong healthcare, financial services, and consumer practices.", commonSkills: ["Sector Banking", "Mid-Cap M&A", "ECM"], jobPageUrl: "https://www.pipersandler.com/careers" },
   ],
   consulting: [
     { name: "McKinsey & Company", roleDescription: "Business Analyst/Associate: Solve complex business problems for Fortune 500 clients across industries.", commonSkills: ["Problem Structuring", "Data Analysis", "Stakeholder Communication"], jobPageUrl: "https://www.mckinsey.com/careers" },
@@ -1516,6 +1524,12 @@ const COMPANY_DATABASE: Record<string, CompanyInfo[]> = {
     { name: "Deloitte Strategy & Operations", roleDescription: "Consultant: Strategy, operations, and human capital consulting with strong global presence.", commonSkills: ["Operations Strategy", "Digital Transformation", "Change Management"], jobPageUrl: "https://www2.deloitte.com/careers" },
     { name: "EY-Parthenon", roleDescription: "Consultant: Strategy consulting arm of EY focused on corporate strategy and transaction advisory.", commonSkills: ["Transaction Advisory", "Market Assessment", "Growth Strategy"], jobPageUrl: "https://www.ey.com/en_us/careers" },
     { name: "Oliver Wyman", roleDescription: "Consultant: Specialty consulting with strong financial services and risk management practices.", commonSkills: ["Risk Management", "Financial Services", "Industry Specialization"], jobPageUrl: "https://www.oliverwyman.com/careers.html" },
+    { name: "L.E.K. Consulting", roleDescription: "Mid-size strategy firm with strong life sciences, private equity, and consumer practices.", commonSkills: ["Commercial Due Diligence", "Strategy", "Industry Research"], jobPageUrl: "https://www.lek.com/careers" },
+    { name: "ZS Associates", roleDescription: "Sales and marketing strategy specialists with deep healthcare and tech practices.", commonSkills: ["Analytics", "Pharma/Healthcare", "Go-to-Market"], jobPageUrl: "https://www.zs.com/careers" },
+    { name: "Putnam Associates", roleDescription: "Boutique life sciences strategy consultancy known for tight teams and meaningful client work.", commonSkills: ["Life Sciences", "Market Access", "Strategy"], jobPageUrl: "https://www.putassoc.com/careers" },
+    { name: "Simon-Kucher", roleDescription: "Pricing and growth strategy consultancy with global reach and specialized expertise.", commonSkills: ["Pricing Strategy", "Revenue Growth", "Quantitative Analysis"], jobPageUrl: "https://www.simon-kucher.com/en/careers" },
+    { name: "Kearney", roleDescription: "Mid-size global strategy and operations consulting firm with strong industry depth.", commonSkills: ["Operations", "Strategy", "Supply Chain"], jobPageUrl: "https://www.kearney.com/careers" },
+    { name: "Charles River Associates", roleDescription: "Economic and financial consultancy with practices in antitrust, life sciences, and energy.", commonSkills: ["Economic Analysis", "Litigation Support", "Industry Expertise"], jobPageUrl: "https://www.crai.com/careers" },
   ],
   marketing: [
     { name: "Procter & Gamble", roleDescription: "Brand Manager: Own P&L for billion-dollar brands. Lead marketing strategy, innovation, and media planning.", commonSkills: ["Brand Strategy", "Consumer Insights", "P&L Management"], jobPageUrl: "https://www.pgcareers.com/" },
@@ -1524,6 +1538,12 @@ const COMPANY_DATABASE: Record<string, CompanyInfo[]> = {
     { name: "Meta", roleDescription: "Marketing Manager: Drive user acquisition and engagement strategies for Meta platforms.", commonSkills: ["Growth Marketing", "A/B Testing", "Performance Marketing"], jobPageUrl: "https://www.metacareers.com/" },
     { name: "HubSpot", roleDescription: "Product Marketing Manager: Position and launch SaaS products. Create content and enable sales teams.", commonSkills: ["SaaS Marketing", "Content Strategy", "Sales Enablement"], jobPageUrl: "https://www.hubspot.com/careers" },
     { name: "Spotify", roleDescription: "Growth Marketing Manager: Drive user acquisition and retention through data-driven marketing campaigns.", commonSkills: ["Growth Strategy", "User Acquisition", "Marketing Analytics"], jobPageUrl: "https://www.lifeatspotify.com/" },
+    { name: "Glossier", roleDescription: "Direct-to-consumer beauty brand. Marketing roles span community, brand, and product launches.", commonSkills: ["Community Marketing", "Brand Storytelling", "DTC"], jobPageUrl: "https://www.glossier.com/careers" },
+    { name: "Warby Parker", roleDescription: "DTC eyewear with retail and digital footprint. Strong brand and growth marketing teams.", commonSkills: ["Omnichannel Marketing", "Brand", "Retail Strategy"], jobPageUrl: "https://www.warbyparker.com/careers" },
+    { name: "Notion", roleDescription: "Product marketing and community-led growth at a fast-scaling SaaS productivity company.", commonSkills: ["Product Marketing", "Community Growth", "Content"], jobPageUrl: "https://www.notion.so/careers" },
+    { name: "Figma", roleDescription: "Product and brand marketing at a category-defining design tool with passionate user base.", commonSkills: ["Product Marketing", "Developer Marketing", "Brand"], jobPageUrl: "https://www.figma.com/careers/" },
+    { name: "Allbirds", roleDescription: "Sustainable footwear brand with marketing roles spanning brand, growth, and retail.", commonSkills: ["Sustainability Storytelling", "DTC", "Brand"], jobPageUrl: "https://www.allbirds.com/pages/careers" },
+    { name: "Liquid Death", roleDescription: "Disruptive beverage brand known for unconventional marketing and viral campaigns.", commonSkills: ["Brand Creative", "Social Marketing", "Disruptive Storytelling"], jobPageUrl: "https://liquiddeath.com/pages/careers" },
   ],
   tech: [
     { name: "Google", roleDescription: "Associate Product Manager: Rotate across Google products, build product strategy, work with engineering teams.", commonSkills: ["Product Strategy", "Data Analysis", "User Research"], jobPageUrl: "https://careers.google.com/" },
@@ -1533,6 +1553,12 @@ const COMPANY_DATABASE: Record<string, CompanyInfo[]> = {
     { name: "Microsoft", roleDescription: "Product Manager: Drive product strategy across cloud, productivity, and enterprise platforms.", commonSkills: ["Enterprise Software", "Cloud Computing", "Product Roadmapping"], jobPageUrl: "https://careers.microsoft.com/" },
     { name: "Salesforce", roleDescription: "Product Manager: Build CRM and cloud platform features for enterprise customers.", commonSkills: ["CRM/SaaS", "Enterprise Workflows", "Platform Architecture"], jobPageUrl: "https://www.salesforce.com/company/careers/" },
     { name: "Notion", roleDescription: "Product Manager: Shape the future of collaborative workspace tools.", commonSkills: ["Productivity Tools", "User Experience", "Community-Led Growth"], jobPageUrl: "https://www.notion.so/careers" },
+    { name: "Linear", roleDescription: "Modern issue tracker for product teams. Small, design-led team with strong product culture.", commonSkills: ["Product Sense", "Design Collaboration", "Developer Tools"], jobPageUrl: "https://linear.app/careers" },
+    { name: "Vercel", roleDescription: "Frontend cloud platform powering Next.js. PMs and engineers shape developer experience at scale.", commonSkills: ["Developer Experience", "Edge Compute", "Frontend"], jobPageUrl: "https://vercel.com/careers" },
+    { name: "Ramp", roleDescription: "Fast-growing fintech for corporate cards and spend management. Strong product and analytics teams.", commonSkills: ["Fintech", "B2B SaaS", "Analytics"], jobPageUrl: "https://ramp.com/careers" },
+    { name: "Plaid", roleDescription: "Financial infrastructure connecting apps to bank accounts. APIs, partnerships, and policy work.", commonSkills: ["Fintech APIs", "Partnerships", "Compliance"], jobPageUrl: "https://plaid.com/careers/" },
+    { name: "Anthropic", roleDescription: "AI safety and research lab building Claude. PM, research, and engineering roles for frontier AI.", commonSkills: ["AI/ML", "Safety", "Product Research"], jobPageUrl: "https://www.anthropic.com/careers" },
+    { name: "Datadog", roleDescription: "Observability platform for cloud applications. Strong product and customer-facing engineering roles.", commonSkills: ["Observability", "Enterprise SaaS", "DevOps"], jobPageUrl: "https://www.datadoghq.com/careers/" },
   ],
   general: [
     { name: "Deloitte", roleDescription: "Analyst/Associate: Advisory, audit, tax, or consulting across multiple practice areas.", commonSkills: ["Analytical Thinking", "Client Communication", "Problem Solving"], jobPageUrl: "https://www2.deloitte.com/careers" },
@@ -1541,6 +1567,12 @@ const COMPANY_DATABASE: Record<string, CompanyInfo[]> = {
     { name: "PwC", roleDescription: "Advisory and consulting roles across industries with strong international network.", commonSkills: ["Business Advisory", "Industry Research", "Stakeholder Management"], jobPageUrl: "https://www.pwc.com/careers" },
     { name: "Johnson & Johnson", roleDescription: "Various business roles in healthcare, consumer goods, and pharmaceuticals.", commonSkills: ["Healthcare Knowledge", "Marketing", "Operations"], jobPageUrl: "https://www.careers.jnj.com/" },
     { name: "Bank of America", roleDescription: "Various roles in consumer banking, wealth management, and corporate finance.", commonSkills: ["Financial Analysis", "Client Service", "Risk Management"], jobPageUrl: "https://campus.bankofamerica.com/" },
+    { name: "Patagonia", roleDescription: "Mission-driven outdoor brand hiring across operations, sustainability, marketing, and product.", commonSkills: ["Sustainability", "Brand", "Operations"], jobPageUrl: "https://www.patagonia.com/careers/" },
+    { name: "Wayfair", roleDescription: "E-commerce home goods company with broad roles in operations, analytics, and merchandising.", commonSkills: ["E-commerce", "Analytics", "Merchandising"], jobPageUrl: "https://www.aboutwayfair.com/careers" },
+    { name: "Cleveland Clinic", roleDescription: "Top-rated health system with roles in operations, strategy, finance, and innovation.", commonSkills: ["Healthcare Operations", "Strategy", "Process Improvement"], jobPageUrl: "https://jobs.clevelandclinic.org/" },
+    { name: "Khan Academy", roleDescription: "Nonprofit edtech with mission-driven product, engineering, content, and partnerships work.", commonSkills: ["EdTech", "Mission-Driven", "Product"], jobPageUrl: "https://www.khanacademy.org/careers" },
+    { name: "Local Government / City Hall", roleDescription: "Cities are hiring for innovation, data, and program roles. Look for fellowships and analyst tracks.", commonSkills: ["Public Policy", "Program Management", "Civic Tech"], jobPageUrl: "https://www.governmentjobs.com/" },
+    { name: "ClassPass", roleDescription: "Subscription fitness marketplace with roles in growth, product, partnerships, and ops.", commonSkills: ["Marketplace", "Growth", "Partnerships"], jobPageUrl: "https://classpass.com/careers" },
   ],
 };
 
@@ -1654,6 +1686,8 @@ const defaultWizardFormData: WizardFormData = {
   currentExperience: "",
   goal: "",
   additionalContext: "",
+  resumeFileName: "",
+  parsedResume: "",
 };
 
 const RoadmapContext = createContext<RoadmapContextType | null>(null);
@@ -1781,7 +1815,9 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       isInternational: wizardFormData.isInternational.toLowerCase() === "yes",
       degree: wizardFormData.degree,
       currentExperience: wizardFormData.currentExperience,
-      additionalContext: wizardFormData.additionalContext,
+      additionalContext: wizardFormData.parsedResume
+        ? `${wizardFormData.additionalContext}${wizardFormData.additionalContext ? "\n\n" : ""}---\nResume (${wizardFormData.resumeFileName || "uploaded"}):\n${wizardFormData.parsedResume.slice(0, 4000)}`
+        : wizardFormData.additionalContext,
       tasks,
       contacts: [],
       checkIns: [],

@@ -276,6 +276,7 @@ export default function RoadmapView() {
 
       {activeTab === "tasks" && (
         <TasksTab
+          onNavigateToTab={handleNavigateToTab}
           roadmap={roadmap}
           onStartTask={setExecutingTaskId}
           checkInText={checkInText}
@@ -325,6 +326,32 @@ export default function RoadmapView() {
   );
 }
 
+function useResetCountdowns() {
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const fmt = (ms: number) => {
+    if (ms < 0) ms = 0;
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    const s = Math.floor((ms % 60_000) / 1000);
+    return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+  };
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const dayDiff = (7 - now.getDay() + 1) % 7 || 7; // days until next Monday
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + dayDiff);
+  nextMonday.setHours(0, 0, 0, 0);
+  return {
+    daily: fmt(tomorrow.getTime() - now.getTime()),
+    weekly: fmt(nextMonday.getTime() - now.getTime()),
+  };
+}
+
 function TasksTab({
   roadmap,
   onStartTask,
@@ -333,6 +360,7 @@ function TasksTab({
   onSaveCheckIn,
   getDailyTask,
   getWeeklyTask,
+  onNavigateToTab,
 }: {
   roadmap: any;
   onStartTask: (id: string) => void;
@@ -341,13 +369,28 @@ function TasksTab({
   onSaveCheckIn: () => void;
   getDailyTask: () => Task | null;
   getWeeklyTask: () => Task | null;
+  onNavigateToTab?: (tab: "tasks" | "roadmap" | "contacts" | "companies") => void;
 }) {
   const dailyTask = getDailyTask();
   const weeklyTask = getWeeklyTask();
   const hasTwoDistinct = dailyTask && weeklyTask && dailyTask.id !== weeklyTask.id;
+  const countdowns = useResetCountdowns();
 
   return (
     <div className="space-y-6" data-testid="tasks-tab">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-gradient-to-r from-primary/5 to-blue-50/40 px-4 py-2.5 text-xs" data-testid="task-countdowns">
+        <div className="flex items-center gap-1.5 text-text-secondary">
+          <Sun className="h-3.5 w-3.5 text-primary-dark" />
+          <span className="font-medium text-text-primary">Daily resets in</span>
+          <span className="font-mono text-primary-dark" data-testid="text-daily-countdown">{countdowns.daily}</span>
+        </div>
+        <span className="text-border">•</span>
+        <div className="flex items-center gap-1.5 text-text-secondary">
+          <Calendar className="h-3.5 w-3.5 text-blue-600" />
+          <span className="font-medium text-text-primary">Weekly resets in</span>
+          <span className="font-mono text-blue-700" data-testid="text-weekly-countdown">{countdowns.weekly}</span>
+        </div>
+      </div>
       <div className={cn("grid gap-4", hasTwoDistinct ? "md:grid-cols-2" : "grid-cols-1")} data-testid="active-tasks">
         {dailyTask && (
           <TaskCard
@@ -395,11 +438,13 @@ function TasksTab({
         </div>
       </div>
 
-      <CoachCheckInSection
+      <HappyHatCoach
         checkInText={checkInText}
         setCheckInText={setCheckInText}
         onSave={onSaveCheckIn}
         checkIns={roadmap.checkIns}
+        roadmap={roadmap}
+        onNavigateToTab={onNavigateToTab}
       />
     </div>
   );
@@ -1108,7 +1153,7 @@ Thanks so much,
                 <div className="text-xs text-text-secondary">
                   Take a moment to reflect on what you've learned. These aren't graded — they're for your own growth.
                 </div>
-                {task.reflectionPrompts.map((prompt, idx) => (
+                {task.reflectionPrompts.slice(0, 1).map((prompt, idx) => (
                   <div key={idx} className="space-y-1.5">
                     <label className="text-sm font-medium text-text-primary block">{prompt}</label>
                     <textarea
@@ -1522,49 +1567,128 @@ function TaskPreviewModal({ task, onClose }: { task: Task; onClose: () => void }
   );
 }
 
-function CoachCheckInSection({
+function HappyHatAvatar({ size = 40, wiggle = false }: { size?: number; wiggle?: boolean }) {
+  return (
+    <div
+      className={cn("inline-flex items-center justify-center", wiggle && "animate-[wiggle_2.4s_ease-in-out_infinite]")}
+      style={{ width: size, height: size }}
+      aria-hidden
+    >
+      <svg viewBox="0 0 64 64" width={size} height={size}>
+        {/* Hat brim */}
+        <ellipse cx="32" cy="40" rx="26" ry="6" fill="#8B5A2B" />
+        <ellipse cx="32" cy="39" rx="24" ry="4" fill="#A0703D" />
+        {/* Hat crown */}
+        <path d="M14 38 Q14 18 32 18 Q50 18 50 38 Q44 36 32 36 Q20 36 14 38 Z" fill="#8B5A2B" />
+        <path d="M16 36 Q16 22 32 22 Q48 22 48 36" fill="none" stroke="#6B3F1B" strokeWidth="1.2" />
+        {/* Crown band */}
+        <rect x="14" y="35" width="36" height="3" fill="#5C3318" rx="1" />
+        {/* Star pin */}
+        <path d="M44 36.5 l1.2 -1.5 l1.5 0.6 l-0.6 1.6 l1.6 0.7 l-1.6 0.7 l0.6 1.6 l-1.5 0.6 l-1.2 -1.5 l-1.2 1.5 l-1.5 -0.6 l0.6 -1.6 l-1.6 -0.7 l1.6 -0.7 l-0.6 -1.6 l1.5 -0.6 z" fill="#F5C24A" />
+        {/* Face */}
+        <circle cx="26" cy="46" r="1.4" fill="#222" />
+        <circle cx="38" cy="46" r="1.4" fill="#222" />
+        <path d="M26 50 Q32 54 38 50" fill="none" stroke="#222" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+function HappyHatCoach({
   checkInText,
   setCheckInText,
   onSave,
   checkIns,
+  roadmap,
+  onNavigateToTab,
 }: {
   checkInText: string;
   setCheckInText: (val: string) => void;
   onSave: () => void;
   checkIns: Array<{ id: string; content: string; coachResponse: string; createdAt: string; adaptiveAction?: string }>;
+  roadmap: any;
+  onNavigateToTab?: (tab: "tasks" | "roadmap" | "contacts" | "companies") => void;
 }) {
+  const contactCount = roadmap.contacts?.length || 0;
+  const savedCount = roadmap.savedCompanies?.length || 0;
+  const completed = roadmap.tasks.filter((t: Task) => t.status === "completed").length;
+
+  const encouragement = React.useMemo(() => {
+    if (contactCount === 0 && savedCount === 0) return "Howdy partner! Let's get the wheels turning — add your first contact or save a company today. Tiny steps add up fast.";
+    if (contactCount > 0 && savedCount === 0) return `Nice work — ${contactCount} contact${contactCount === 1 ? "" : "s"} in the pipeline. Want to lock in some target companies next? It'll sharpen your outreach.`;
+    if (savedCount > 0 && contactCount === 0) return `Great list of ${savedCount} compan${savedCount === 1 ? "y" : "ies"} saved. Now let's find a real human inside one of them — that's where the magic happens.`;
+    if (completed === 0) return `You've got contacts and companies queued up. Crack open today's task and turn that prep into momentum.`;
+    return `${completed} task${completed === 1 ? "" : "s"} done, ${contactCount} contact${contactCount === 1 ? "" : "s"}, ${savedCount} compan${savedCount === 1 ? "y" : "ies"} on the radar. That's real progress — keep showing up.`;
+  }, [contactCount, savedCount, completed]);
+
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm" data-testid="section-coach-checkin">
-      <div className="flex items-center gap-2 text-sm font-semibold" data-testid="text-checkin-title">
-        <MessageCircle className="h-4 w-4 text-primary" />
-        Coach Check-In
+    <div className="rounded-xl border border-border bg-card p-6 shadow-sm" data-testid="section-happy-hat">
+      <style>{`@keyframes wiggle { 0%,100% { transform: rotate(0deg);} 25% { transform: rotate(-6deg);} 75% { transform: rotate(6deg);} }`}</style>
+      <div className="flex items-start gap-3">
+        <HappyHatAvatar size={48} wiggle />
+        <div className="flex-1">
+          <div className="text-sm font-semibold flex items-center gap-2" data-testid="text-happy-hat-title">
+            Happy Hat
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-800">Your coach</span>
+          </div>
+          <div className="mt-1 text-sm text-text-primary leading-relaxed" data-testid="text-happy-hat-message">
+            {encouragement}
+          </div>
+        </div>
       </div>
-      <div className="mt-1 text-xs text-text-secondary" data-testid="text-checkin-subtitle">
-        Share what's happening — progress, challenges, concerns. The system will adjust your roadmap based on what you share.
-      </div>
-      <textarea
-        className="mt-4 min-h-[100px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-        placeholder="e.g., I sent outreach to 5 people but got no response from 3 of them. I have an interview at Goldman next week..."
-        value={checkInText}
-        onChange={(e) => setCheckInText(e.target.value)}
-        data-testid="textarea-coach-checkin"
-      />
-      <div className="mt-3 flex justify-end">
-        <Button className="rounded-full bg-primary px-6" onClick={onSave} data-testid="button-submit-checkin">
-          Submit Check-In
-        </Button>
+
+      {onNavigateToTab && (
+        <div className="mt-4 flex flex-wrap gap-2" data-testid="happy-hat-quick-nav">
+          <button
+            onClick={() => onNavigateToTab("contacts")}
+            className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium text-text-primary hover:bg-primary/10"
+            data-testid="button-hat-go-contacts"
+          >
+            Open Contacts
+          </button>
+          <button
+            onClick={() => onNavigateToTab("companies")}
+            className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-text-primary hover:bg-blue-100"
+            data-testid="button-hat-go-companies"
+          >
+            Open Companies
+          </button>
+          <button
+            onClick={() => onNavigateToTab("roadmap")}
+            className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-text-primary hover:bg-amber-100"
+            data-testid="button-hat-go-roadmap"
+          >
+            See Roadmap
+          </button>
+        </div>
+      )}
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Tell Happy Hat what's going on</div>
+        <textarea
+          className="min-h-[90px] w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          placeholder="e.g., I sent outreach to 5 people but heard back from only 1, or I just got an interview at Stripe..."
+          value={checkInText}
+          onChange={(e) => setCheckInText(e.target.value)}
+          data-testid="textarea-coach-checkin"
+        />
+        <div className="mt-3 flex justify-end">
+          <Button className="rounded-full bg-primary px-6" onClick={onSave} data-testid="button-submit-checkin">
+            Send to Happy Hat
+          </Button>
+        </div>
       </div>
 
       {checkIns.length > 0 && (
         <div className="mt-6 space-y-4" data-testid="list-checkins">
-          <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Previous Check-Ins</div>
+          <div className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Previous Conversations</div>
           {checkIns.map((ci) => (
             <div key={ci.id} className="rounded-lg border border-border bg-gray-50 p-4 space-y-2" data-testid={`checkin-${ci.id}`}>
               <div className="text-sm text-text-primary font-medium">{ci.content}</div>
               <div className="rounded-lg bg-primary/5 border border-primary/10 p-3">
-                <div className="text-xs font-semibold text-primary-dark mb-1 flex items-center gap-1">
-                  <MessageCircle className="h-3 w-3" />
-                  Coach Response
+                <div className="text-xs font-semibold text-primary-dark mb-1 flex items-center gap-1.5">
+                  <HappyHatAvatar size={16} />
+                  Happy Hat says
                 </div>
                 <div className="text-sm text-text-primary whitespace-pre-wrap">{ci.coachResponse}</div>
               </div>

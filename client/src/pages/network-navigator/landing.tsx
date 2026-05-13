@@ -25,11 +25,11 @@ export default function NetworkNavigatorLanding() {
     <div className="space-y-8" data-testid="screen-network-navigator-landing">
       {/* Top Description Box */}
       <div className="rounded-xl border border-border bg-white p-6 shadow-sm" data-testid="box-network-description">
-        <h2 className="text-lg font-semibold text-text-primary">Your Personal Networking Compass</h2>
+        <h2 className="text-lg font-semibold text-text-primary">Daily Networking & Career Momentum Coaching</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
-          Network Navigator helps international students navigate the complex U.S. job market.
-          We provide tailored roadmaps, step-by-step outreach guidance, and cultural context to help you
-          build meaningful professional relationships and secure opportunities.
+          Built for students, career switchers, and early professionals chasing roles, internships, and opportunities.
+          Get a tailored roadmap, daily networking actions, and step-by-step outreach guidance that turns conversations
+          into referrals — and referrals into offers.
         </p>
       </div>
 

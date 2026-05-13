@@ -1,6 +1,6 @@
 import * as React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutGrid, Network, MessageSquareText } from "lucide-react";
+import { LayoutGrid, Network } from "lucide-react";
 
 // AppShell is the persistent layout wrapper.
 // Layout + spacing intentionally mirror the style reference:
@@ -25,12 +25,6 @@ export default function AppShell() {
               icon={<LayoutGrid className="h-4 w-4" />}
               label="Dashboard"
               testId="link-dashboard"
-            />
-            <ShellNavItem
-              to="/mock-interview"
-              icon={<MessageSquareText className="h-4 w-4" />}
-              label="Mock Interview Tool"
-              testId="link-mock-interview"
             />
             <ShellNavItem
               to="/network-navigator"
