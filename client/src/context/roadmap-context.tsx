@@ -1664,6 +1664,8 @@ interface RoadmapContextType {
   addCoachCheckIn: (content: string) => void;
   globalContacts: Contact[];
   globalSavedCompanies: SavedCompany[];
+  globalResume: GlobalResume | null;
+  setGlobalResume: (resume: GlobalResume | null) => void;
   addContact: (contact: Omit<Contact, "id">) => void;
   updateContact: (contactId: string, updates: Partial<Contact>) => void;
   deleteContact: (contactId: string) => void;
@@ -1699,6 +1701,21 @@ const CURRENT_ROADMAP_KEY = "network-navigator-current";
 const WIZARD_DRAFT_KEY = "network-navigator-wizard-draft";
 const GLOBAL_CONTACTS_KEY = "network-navigator-global-contacts";
 const GLOBAL_COMPANIES_KEY = "network-navigator-global-companies";
+const GLOBAL_RESUME_KEY = "network-navigator-global-resume";
+
+export interface GlobalResume {
+  fileName: string;
+  parsedText: string;
+  uploadedAt: string;
+}
+
+function loadInitialResume(): GlobalResume | null {
+  try {
+    const stored = localStorage.getItem(GLOBAL_RESUME_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return null;
+}
 
 function migrateRoadmap(r: any): Roadmap {
   return {
@@ -1794,6 +1811,19 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
   const [globalSavedCompanies, setGlobalSavedCompanies] = useState<SavedCompany[]>(() => {
     return loadInitialGlobalCompanies(loadInitialRoadmaps());
   });
+  const [globalResume, setGlobalResumeState] = useState<GlobalResume | null>(loadInitialResume);
+
+  const setGlobalResume = (resume: GlobalResume | null) => {
+    setGlobalResumeState(resume);
+  };
+
+  useEffect(() => {
+    if (globalResume) {
+      localStorage.setItem(GLOBAL_RESUME_KEY, JSON.stringify(globalResume));
+    } else {
+      localStorage.removeItem(GLOBAL_RESUME_KEY);
+    }
+  }, [globalResume]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(roadmaps));
@@ -1867,9 +1897,16 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
       isInternational: wizardFormData.isInternational.toLowerCase() === "yes",
       degree: wizardFormData.degree,
       currentExperience: wizardFormData.currentExperience,
-      additionalContext: wizardFormData.parsedResume
-        ? `${wizardFormData.additionalContext}${wizardFormData.additionalContext ? "\n\n" : ""}---\nResume (${wizardFormData.resumeFileName || "uploaded"}):\n${wizardFormData.parsedResume.slice(0, 4000)}`
-        : wizardFormData.additionalContext,
+      // Prefer the globally shared resume as source of truth so the roadmap
+      // embeds whatever resume the user currently has on file (uploaded from
+      // either the dashboard or the wizard), not a stale wizard draft.
+      additionalContext: (() => {
+        const resumeText = globalResume?.parsedText || wizardFormData.parsedResume;
+        const resumeName = globalResume?.fileName || wizardFormData.resumeFileName;
+        if (!resumeText) return wizardFormData.additionalContext;
+        const sep = wizardFormData.additionalContext ? "\n\n" : "";
+        return `${wizardFormData.additionalContext}${sep}---\nResume (${resumeName || "uploaded"}):\n${resumeText.slice(0, 4000)}`;
+      })(),
       tasks,
       // Seed new roadmap with the current global contact/company pools so the user
       // immediately sees their existing network rather than an empty state.
@@ -2212,6 +2249,8 @@ export function RoadmapProvider({ children }: { children: ReactNode }) {
         currentRoadmap,
         globalContacts,
         globalSavedCompanies,
+        globalResume,
+        setGlobalResume,
         wizardFormData,
         updateWizardFormData,
         createRoadmap,

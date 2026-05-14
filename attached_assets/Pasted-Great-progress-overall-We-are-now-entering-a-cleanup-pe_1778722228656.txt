@@ -1,0 +1,169 @@
+Great progress overall. We are now entering a cleanup, persistence, and account system phase. Please make the following updates carefully WITHOUT redesigning the app or breaking existing functionality.
+
+DASHBOARD CONTACT COUNT BUG
+
+The “Conversations Started” metric on the dashboard is inaccurate.
+
+Example:
+
+dashboard says 24
+actual contacts created = 2
+
+Fix this metric so it dynamically derives from actual contact data.
+
+Requirements:
+
+Count should reflect REAL contacts/conversations
+Pull directly from shared Contacts state
+Update live as contacts are added/deleted
+No hardcoded/mock numbers
+
+If needed:
+
+define clear logic for what counts as a “conversation started”
+simplest acceptable logic:
+number of contacts with status beyond “identified”
+RESUME SYSTEM SYNCHRONIZATION
+
+Currently the dashboard asks for:
+
+resume
+cover letter
+
+Remove cover letter entirely for now.
+
+We only want:
+
+Resume upload
+
+Also:
+The resume upload system needs to become globally synchronized.
+
+Requirements:
+
+If user uploads resume during roadmap creation:
+automatically display it in dashboard resume area
+If user uploads resume from dashboard:
+automatically populate roadmap/resume state
+
+There should only be ONE shared resume state across the app.
+
+Requirements:
+
+shared globally
+persisted in localStorage/account
+parsed once
+accessible to roadmap/task generation logic
+
+Do NOT duplicate resume storage across multiple systems.
+
+BASIC ACCOUNT SYSTEM
+
+We now need lightweight account/profile infrastructure.
+
+Goal:
+Users should feel like they have a real account/profile.
+
+Implement:
+
+Sign Up screen
+Login screen
+Logout functionality
+Basic user profile object
+
+Store:
+
+name
+email
+profile creation date
+streak data
+roadmap data
+contacts
+companies
+uploaded resume
+coaching history
+
+IMPORTANT:
+This can remain frontend/localStorage/mock-auth only for now.
+No real backend/auth provider required yet.
+
+Architecture guidance:
+
+create clean structure so real backend auth can be plugged in later
+preserve all existing app functionality
+avoid major rewrites
+
+UX:
+
+polished
+minimal
+modern
+simple onboarding
+
+If user is not logged in:
+
+redirect appropriately
+preserve onboarding quality
+HAPPY HAT VISUAL REDESIGN
+
+We are uploading a visual reference image for Happy Hat.
+
+IMPORTANT:
+Use the uploaded image as the PRIMARY visual reference for:
+
+cowboy hat shape
+western styling
+American aesthetic
+silhouette
+color direction
+personality vibe
+
+Happy Hat should specifically resemble:
+
+a classic American western/Texas cowboy hat
+with American flag styling
+red/white/blue stars and stripes
+simple expressive face
+warm smile
+clean polished mascot design
+
+Keep:
+
+existing animation behavior
+floating assistant functionality
+coaching personality
+subtle motion/wiggle
+
+Avoid:
+
+generic cowboy hats
+cartoon children mascot energy
+overly corporate illustration style
+
+The goal is:
+friendly Americana + modern productivity app polish.
+
+IMPLEMENTATION NOTES
+
+DO NOT:
+
+redesign layouts
+break roadmap logic
+break task logic
+break persistence
+remove existing systems
+
+DO:
+
+improve synchronization
+improve state consistency
+improve account structure
+improve mascot identity
+strengthen app cohesion
+
+After implementation:
+
+summarize architecture updates
+explain shared resume system
+explain account/auth structure
+explain how dashboard metrics are now calculated

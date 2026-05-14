@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { FeatureCard } from "@/components/feature-card";
 import { KpiCard } from "@/components/kpi-card";
 import { PageHeader } from "@/components/page-header";
-import { Network, Rocket, Info } from "lucide-react";
+import { Network, Rocket, Info, FileText, CheckCircle2, Loader2, Upload, X } from "lucide-react";
 import { useRoadmap } from "@/context/roadmap-context";
+import { useAuth } from "@/context/auth-context";
+import { parseResumeFile } from "@/lib/resume-parser";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const MOMENTUM_KEY = "opendoorai-momentum";
@@ -114,9 +116,95 @@ function MomentumCard() {
   );
 }
 
+function ResumeCard() {
+  const { globalResume, setGlobalResume } = useRoadmap();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [parsing, setParsing] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setParsing(true);
+    try {
+      const text = await parseResumeFile(file);
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      setGlobalResume({ fileName: file.name, parsedText: cleaned, uploadedAt: new Date().toISOString() });
+    } catch (err: any) {
+      setError(err?.message || "Failed to parse resume.");
+    } finally {
+      setParsing(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div
+      className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 shadow-sm transition-colors hover:bg-primary/10"
+      data-testid="card-document-status"
+    >
+      <div>
+        <div className="text-xs font-medium text-text-secondary">Resume</div>
+        {globalResume ? (
+          <div className="mt-1">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-text-primary truncate" data-testid="text-resume-filename">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span className="truncate">{globalResume.fileName}</span>
+            </div>
+            <div className="text-[11px] text-text-secondary mt-0.5">
+              Shared across all roadmaps · {globalResume.parsedText.length.toLocaleString()} chars
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1 text-sm font-semibold text-text-primary flex items-center gap-1.5">
+            <FileText className="h-4 w-4 text-text-secondary" />
+            No resume uploaded yet
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,.docx,.txt"
+          className="hidden"
+          onChange={handleFile}
+          data-testid="input-dashboard-resume"
+        />
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={parsing}
+          className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-primary/20 bg-white py-1.5 text-xs font-medium text-text-primary shadow-sm hover:bg-primary/5 disabled:opacity-60"
+          data-testid="button-upload-resume"
+        >
+          {parsing ? (
+            <><Loader2 className="h-3 w-3 animate-spin" /> Reading...</>
+          ) : (
+            <><Upload className="h-3 w-3" /> {globalResume ? "Replace" : "Upload Resume"}</>
+          )}
+        </button>
+        {globalResume && (
+          <button
+            onClick={() => setGlobalResume(null)}
+            className="rounded-lg border border-primary/20 bg-white px-2 py-1.5 text-xs text-text-secondary hover:bg-red-50 hover:text-red-600"
+            aria-label="Remove resume"
+            data-testid="button-remove-resume"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+      {error && <div className="mt-2 text-[11px] text-red-600" data-testid="text-resume-upload-error">{error}</div>}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { roadmaps, setCurrentRoadmap } = useRoadmap();
+  const { roadmaps, setCurrentRoadmap, globalContacts } = useRoadmap();
+  const { user } = useAuth();
 
   const handleGoToRoadmap = (id: string) => {
     setCurrentRoadmap(id);
@@ -133,12 +221,18 @@ export default function Dashboard() {
 
   const displayRoadmaps = roadmaps.slice(0, 3);
 
-  const totalContacts = roadmaps.reduce((sum, r) => sum + (r.contacts?.length || 0), 0);
+  // "Conversations Started" = real contacts whose status has moved past "identified".
+  // Pulls live from the shared global pool, never from per-roadmap sums (which would
+  // double-count due to mirroring).
+  const conversationsStarted = globalContacts.filter((c) => c.status !== "identified").length;
+  const totalContacts = globalContacts.length;
+
+  const greetingName = user?.name?.split(/\s+/)[0] || "";
 
   return (
     <div className="space-y-8" data-testid="screen-dashboard">
       <PageHeader
-        title="Welcome back!"
+        title={greetingName ? `Welcome back, ${greetingName}!` : "Welcome back!"}
         subtitle="Your daily networking and career momentum coach."
         testId="header-dashboard"
       />
@@ -146,29 +240,14 @@ export default function Dashboard() {
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3" data-testid="section-kpis">
         <KpiCard
           label="Conversations Started"
-          value={String(totalContacts)}
-          helper="Contacts tracked across roadmaps"
+          value={String(conversationsStarted)}
+          helper={totalContacts === 0
+            ? "No contacts yet"
+            : `${conversationsStarted} of ${totalContacts} contact${totalContacts === 1 ? "" : "s"} engaged`}
           testId="card-kpi-contacts"
         />
         <MomentumCard />
-        <div
-          className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 shadow-sm transition-colors hover:bg-primary/10"
-          data-testid="card-document-status"
-        >
-          <div>
-            <div className="text-xs font-medium text-text-secondary">Document Status</div>
-            <div className="mt-1 text-sm font-semibold text-text-primary">Resume & Cover Letter</div>
-          </div>
-
-          <div className="mt-3 flex gap-2">
-             <button className="flex-1 rounded-lg border border-primary/20 bg-white py-1.5 text-xs font-medium text-text-primary shadow-sm hover:bg-primary/5">
-               Upload Resume
-             </button>
-             <button className="flex-1 rounded-lg border border-primary/20 bg-white py-1.5 text-xs font-medium text-text-primary shadow-sm hover:bg-primary/5">
-               Upload CL
-             </button>
-          </div>
-        </div>
+        <ResumeCard />
       </section>
 
       <section className="space-y-4" data-testid="section-get-started">

@@ -1568,54 +1568,69 @@ function TaskPreviewModal({ task, onClose }: { task: Task; onClose: () => void }
 }
 
 function HappyHatAvatar({ size = 40, wiggle = false }: { size?: number; wiggle?: boolean }) {
-  // American cowboy hat: cream crown, navy band with white stars, soft red brim accent.
-  // Friendly modern illustration style — not cartoonish, not corporate.
+  // American flag cowboy hat — modeled on the uploaded reference image.
+  // Blue crown with scattered white stars, red+white striped curving brim, simple
+  // expressive face below. Modern, polished, not cartoonish.
+  const w = size;
+  const h = size;
+  // 9 stars scattered across the crown.
+  const stars = [
+    [22, 22, 1.3], [32, 18, 1.5], [42, 22, 1.3],
+    [18, 28, 1.1], [27, 26, 1.2], [37, 26, 1.2], [46, 28, 1.1],
+    [24, 32, 1.1], [40, 32, 1.1],
+  ] as const;
+
   return (
     <div
       className={cn("inline-flex items-center justify-center", wiggle && "animate-[wiggle_2.4s_ease-in-out_infinite]")}
-      style={{ width: size, height: size }}
+      style={{ width: w, height: h }}
       aria-hidden
     >
-      <svg viewBox="0 0 64 64" width={size} height={size}>
+      <svg viewBox="0 0 64 64" width={w} height={h}>
         <defs>
-          <linearGradient id="hatCream" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#F5E9D0" />
-            <stop offset="100%" stopColor="#E5D2A8" />
-          </linearGradient>
+          <clipPath id="brimClip">
+            {/* Curving cowboy-hat brim (sides curl up) */}
+            <path d="M6 41 Q16 32 32 38 Q48 32 58 41 Q56 47 50 47 Q40 49 32 47 Q24 49 14 47 Q8 47 6 41 Z" />
+          </clipPath>
         </defs>
-        {/* Brim shadow + brim */}
-        <ellipse cx="32" cy="42" rx="27" ry="5.5" fill="#C75450" opacity="0.18" />
-        <ellipse cx="32" cy="41" rx="26" ry="5" fill="url(#hatCream)" stroke="#B8A06F" strokeWidth="0.6" />
-        {/* Crown */}
-        <path d="M15 39 Q15 19 32 19 Q49 19 49 39 Q43 37 32 37 Q21 37 15 39 Z" fill="url(#hatCream)" stroke="#B8A06F" strokeWidth="0.6" />
-        {/* Subtle pinch on top */}
-        <path d="M24 22 Q32 17 40 22" fill="none" stroke="#B8A06F" strokeWidth="0.8" opacity="0.7" />
-        {/* Navy band with white stars (American flag inspired) */}
-        <rect x="15" y="35.5" width="34" height="3.6" fill="#1F3A78" rx="0.6" />
-        {/* 3 small white stars on the band */}
-        <HatStar cx={22} cy={37.3} r={1} />
-        <HatStar cx={32} cy={37.3} r={1} />
-        <HatStar cx={42} cy={37.3} r={1} />
-        {/* Red stripe accent on brim front */}
-        <path d="M14 41.5 Q32 44.4 50 41.5" fill="none" stroke="#C75450" strokeWidth="1" strokeLinecap="round" opacity="0.85" />
-        {/* Friendly face — simple, warm, encouraging */}
-        <circle cx="26" cy="47" r="1.5" fill="#2A2A2A" />
-        <circle cx="38" cy="47" r="1.5" fill="#2A2A2A" />
-        {/* Tiny eye glints */}
-        <circle cx="26.5" cy="46.5" r="0.4" fill="#fff" />
-        <circle cx="38.5" cy="46.5" r="0.4" fill="#fff" />
+
+        {/* Soft shadow under brim */}
+        <ellipse cx="32" cy="49" rx="26" ry="3.5" fill="#000" opacity="0.08" />
+
+        {/* === Brim: red base with white stripes, clipped to brim shape === */}
+        <g clipPath="url(#brimClip)">
+          <rect x="0" y="36" width="64" height="14" fill="#E63946" />
+          {/* Wavy white stripes following the brim's curve */}
+          <path d="M2 39 Q16 36 32 40 Q48 36 62 39" stroke="#FFFFFF" strokeWidth="1.6" fill="none" />
+          <path d="M2 43 Q16 40 32 44 Q48 40 62 43" stroke="#FFFFFF" strokeWidth="1.6" fill="none" />
+          <path d="M2 46 Q16 43 32 47 Q48 43 62 46" stroke="#FFFFFF" strokeWidth="1.4" fill="none" />
+        </g>
+        {/* Brim outline */}
+        <path d="M6 41 Q16 32 32 38 Q48 32 58 41 Q56 47 50 47 Q40 49 32 47 Q24 49 14 47 Q8 47 6 41 Z" fill="none" stroke="#B22A33" strokeWidth="0.7" />
+
+        {/* === Crown: navy blue with scattered white stars === */}
+        <path d="M14 39 Q14 16 32 16 Q50 16 50 39 Q42 36 32 36 Q22 36 14 39 Z" fill="#1F3A78" stroke="#142754" strokeWidth="0.6" />
+        {/* Subtle highlight at top of crown */}
+        <path d="M22 19 Q32 14 42 19" fill="none" stroke="#3B5BA8" strokeWidth="1" opacity="0.7" />
+        {stars.map(([cx, cy, r], i) => (
+          <HatStar key={i} cx={cx} cy={cy} r={r} />
+        ))}
+
+        {/* === Friendly face under the brim === */}
+        <circle cx="26" cy="53" r="1.4" fill="#2A2A2A" />
+        <circle cx="38" cy="53" r="1.4" fill="#2A2A2A" />
+        <circle cx="26.4" cy="52.6" r="0.4" fill="#fff" />
+        <circle cx="38.4" cy="52.6" r="0.4" fill="#fff" />
         {/* Warm smile */}
-        <path d="M25 50.5 Q32 55 39 50.5" fill="none" stroke="#2A2A2A" strokeWidth="1.6" strokeLinecap="round" />
-        {/* Subtle cheek blush */}
-        <circle cx="23" cy="51" r="1.2" fill="#E8A0A0" opacity="0.55" />
-        <circle cx="41" cy="51" r="1.2" fill="#E8A0A0" opacity="0.55" />
+        <path d="M25 56 Q32 60 39 56" fill="none" stroke="#2A2A2A" strokeWidth="1.6" strokeLinecap="round" />
+        <circle cx="23" cy="56.5" r="1.1" fill="#F0A8A8" opacity="0.6" />
+        <circle cx="41" cy="56.5" r="1.1" fill="#F0A8A8" opacity="0.6" />
       </svg>
     </div>
   );
 }
 
 function HatStar({ cx, cy, r }: { cx: number; cy: number; r: number }) {
-  // Tiny 5-point star, white, used on the hat band.
   const points: string[] = [];
   for (let i = 0; i < 10; i++) {
     const angle = (Math.PI / 5) * i - Math.PI / 2;

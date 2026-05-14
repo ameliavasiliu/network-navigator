@@ -3,35 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, AlertCircle, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { useRoadmap, WizardFormData } from "@/context/roadmap-context";
-
-async function parseResumeFile(file: File): Promise<string> {
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".docx")) {
-    const mammoth = await import("mammoth/mammoth.browser");
-    const arrayBuffer = await file.arrayBuffer();
-    const result = await mammoth.extractRawText({ arrayBuffer });
-    return result.value || "";
-  }
-  if (name.endsWith(".pdf")) {
-    const pdfjsLib: any = await import("pdfjs-dist");
-    // Vite-friendly worker URL: ?url returns a hashed asset path that works in dev and prod.
-    const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let text = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      text += content.items.map((it: any) => it.str).join(" ") + "\n";
-    }
-    return text;
-  }
-  if (name.endsWith(".txt")) {
-    return await file.text();
-  }
-  throw new Error("Unsupported file type. Please upload a PDF, DOCX, or TXT file.");
-}
+import { parseResumeFile } from "@/lib/resume-parser";
 
 interface StepProps {
   data: WizardFormData;
@@ -85,8 +57,23 @@ function StepOneContent({ data, onChange }: StepProps) {
 
 function StepTwoContent({ data, onChange }: StepProps) {
   const isEmpty = !data.currentExperience.trim();
+  const { globalResume, setGlobalResume } = useRoadmap();
   const [parsing, setParsing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Single shared resume across the app: globalResume is the source of truth.
+  // Sync the wizard draft to it reactively whenever it changes (uploaded from
+  // the dashboard, replaced, or cleared) so the wizard never embeds a stale
+  // resume into a roadmap. The wizard's own upload writes to globalResume,
+  // which then flows back through this effect.
+  React.useEffect(() => {
+    const globalFile = globalResume?.fileName || "";
+    const globalText = globalResume?.parsedText || "";
+    if (data.resumeFileName !== globalFile || data.parsedResume !== globalText) {
+      onChange({ resumeFileName: globalFile, parsedResume: globalText });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalResume?.fileName, globalResume?.parsedText, globalResume?.uploadedAt]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,7 +84,7 @@ function StepTwoContent({ data, onChange }: StepProps) {
       const text = await parseResumeFile(file);
       const cleaned = text.replace(/\s+/g, " ").trim();
       onChange({ resumeFileName: file.name, parsedResume: cleaned });
-      // If experience field is empty, auto-prefill from resume excerpt to give the user a head start
+      setGlobalResume({ fileName: file.name, parsedText: cleaned, uploadedAt: new Date().toISOString() });
       if (!data.currentExperience.trim() && cleaned.length > 40) {
         onChange({ currentExperience: cleaned.slice(0, 600) + (cleaned.length > 600 ? "…" : "") });
       }
