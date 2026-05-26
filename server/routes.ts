@@ -1,12 +1,32 @@
+// ============================================================
+// PATCH: server/routes.ts
+//
+// Add these two lines to your existing routes.ts file:
+//
+// 1. At the top, after the existing imports:
+//
+//   import { registerRAGRoutes } from "./rag-routes.js";
+//
+// 2. Inside registerRoutes(), right before "return httpServer;":
+//
+//   registerRAGRoutes(app);
+//
+// That's it — no other changes to routes.ts needed.
+// ============================================================
+//
+// Here is the complete updated routes.ts for reference:
+// (Copy this file to server/routes.ts, replacing the existing one)
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import {
   insertRoadmapSchema,
   insertTaskSchema,
   insertProgressUpdateSchema,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { fromError } from "zod-validation-error";
+import { registerRAGRoutes } from "./rag-routes.js";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -108,6 +128,9 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to fetch progress updates" });
     }
   });
+
+  // ── RAG routes (resume feedback, circumstances, coaching) ──
+  registerRAGRoutes(app);
 
   return httpServer;
 }
